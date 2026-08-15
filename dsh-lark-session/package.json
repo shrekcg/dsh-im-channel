@@ -1,0 +1,24 @@
+{
+  "name": "dsh-lark-session",
+  "version": "0.1.0",
+  "description": "Persistent-session runner for the Feishu bridge: resume a fixed session across turns",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./startup": {
+      "default": "./lib/startup.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "*",
+    "@deepseek-ai/dsh-agent": "*",
+    "@deepseek-ai/dsh-llm": "*",
+    "@deepseek-ai/dsh-session": "*",
+    "@deepseek-ai/dsh-cmdline": "*",
+    "commander": "*"
+  }
+}

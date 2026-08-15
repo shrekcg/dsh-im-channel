@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>DSH_BIN</key>
+		<string>/Users/Wcg/.local/bin/dsh</string>
+		<key>DSH_HOME</key>
+		<string>/Users/Wcg/.dsh</string>
+		<key>HOME</key>
+		<string>/Users/Wcg</string>
+		<key>LARK_APP_ID</key>
+		<string>cli_aaf452591cb8dcff</string>
+		<key>LARK_APP_SECRET</key>
+		<string>__LARK_APP_SECRET__</string>
+		<key>PATH</key>
+		<string>/Users/Wcg/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+	</dict>
+	<key>KeepAlive</key>
+	<true/>
+	<key>Label</key>
+	<string>com.dsh.lark-bridge</string>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/opt/homebrew/bin/node</string>
+		<string>/Users/Wcg/Desktop/AI /deepseek-harness/dsh-lark-bridge/src/index.js</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>/Users/Wcg/Desktop/AI /deepseek-harness/dsh-lark-bridge/bridge.err.log</string>
+	<key>StandardOutPath</key>
+	<string>/Users/Wcg/Desktop/AI /deepseek-harness/dsh-lark-bridge/bridge.log</string>
+	<key>WorkingDirectory</key>
+	<string>/Users/Wcg/Desktop/AI /deepseek-harness/dsh-lark-bridge</string>
+</dict>
+</plist>

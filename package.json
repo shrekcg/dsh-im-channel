@@ -7,7 +7,11 @@
     "start": "node src/index.js",
     "test": "node --test tests/*.test.js",
     "doctor": "node src/commands/doctor.js",
-    "mcp": "node src/tools/mcp-server.js"
+    "mcp": "node src/tools/mcp-server.js",
+    "setup": "node scripts/setup.js",
+    "install-bridge": "node scripts/install.js install",
+    "uninstall-bridge": "node scripts/install.js uninstall",
+    "status": "node scripts/install.js status"
   },
   "keywords": [
     "feishu",

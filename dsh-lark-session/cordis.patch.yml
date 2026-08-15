@@ -1,0 +1,35 @@
+# dsh-lark-session patch: swap the one-shot headless runner for the
+# persistent-session runner (Feishu bridge). Applied via:
+#   dsh --profile headless --patch ./node_modules/dsh-lark-session/cordis.patch.yml ...
+
+# 停用原 headless 一次性 runner 与 startup（保留 base 的核心服务）
+- id: headless-runner
+  disabled: true
+
+- id: headless-startup
+  disabled: true
+
+- insert:
+    # 持久会话 startup: 解析 --session 与 task
+    - id: lark-session-startup
+      name: 'dsh-lark-session/startup'
+
+    # 持久会话 runner: 用 agents.resume 恢复固定 session
+    - id: lark-session-runner
+      name: 'dsh-lark-session'
+      inject: [larkSessionStartup]
+      config:
+        task: !!js ctx.larkSessionStartup.task
+        sessionId: !!js ctx.larkSessionStartup.sessionId
+
+    # 飞书对象工具: 连接飞书 MCP server, agent 可用 mcp__feishu__* 工具
+    - id: mcp-feishu
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: feishu
+        transport: stdio
+        command: /opt/homebrew/bin/node
+        args: ['/Users/Wcg/Desktop/AI /deepseek-harness/dsh-lark-bridge/src/tools/mcp-server.js']
+        env:
+          LARK_CLI: /opt/homebrew/bin/lark-cli
+        failOnStartupError: true
