@@ -19,6 +19,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { spawnSync } = require('child_process');
 
 const BRIDGE_DIR = path.resolve(__dirname, '..', '..');
@@ -192,6 +193,32 @@ function main() {
       report('会话目录', false, sessionsDir, '运行一次消息触发会话创建');
     }
   }
+  console.log();
+
+  // ---------- 7. 功能特性 ----------
+  console.log('[7] 功能特性');
+  const featuresSrc = fs.readFileSync(path.join(BRIDGE_DIR, 'src', 'commands', 'features.js'), 'utf8');
+  // 流式检测
+  let streamingOk = false;
+  try {
+    const runnerPath = path.join(config?.dshHome || process.env.DSH_HOME || path.join(os.homedir(), '.dsh'),
+      'profiles', 'headless', 'node_modules', 'dsh-lark-session', 'lib', 'index.js');
+    if (fs.existsSync(runnerPath)) {
+      streamingOk = /"delta"|type: "delta"/.test(fs.readFileSync(runnerPath, 'utf8'));
+    }
+  } catch (e) {}
+  report('真流式输出', streamingOk, streamingOk ? '边生成边显示' : '未启用', '更新 dsh-lark-session runner');
+  // 视觉检测
+  let visionOk = false;
+  try {
+    const base = path.join(config?.dshHome || process.env.DSH_HOME || path.join(os.homedir(), '.dsh'), 'profiles');
+    for (const p of ['headless', 'web']) {
+      const dir = path.join(base, p, 'node_modules');
+      if (!fs.existsSync(dir)) continue;
+      if (fs.readdirSync(dir).some((n) => /vision|image|visual|ocr/i.test(n))) { visionOk = true; break; }
+    }
+  } catch (e) {}
+  report('图片视觉理解', visionOk, visionOk ? '视觉识别插件已安装' : '未安装', '安装视觉识别插件');
   console.log();
 
   // ---------- 汇总 ----------
