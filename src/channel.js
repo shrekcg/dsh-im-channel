@@ -30,8 +30,8 @@ function getChannel(config, accountId) {
     // 流式节流: 调小字符阈值让打字机匀速 (默认 50字符/100ms 会突然跳大段)
     // 可配置: STREAM_THROTTLE_MS / STREAM_THROTTLE_CHARS 环境变量
     outbound: {
-      streamThrottleMs: config.streamThrottleMs ?? 60,
-      streamThrottleChars: config.streamThrottleChars ?? 12,
+      streamThrottleMs: config.streamThrottleMs ?? 50,
+      streamThrottleChars: config.streamThrottleChars ?? 24,
     },
   });
   channelMap.set(key, ch);

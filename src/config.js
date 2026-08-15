@@ -22,8 +22,8 @@ const DEFAULTS = {
   respondToMentionAll: true,
   typingChunkMs: 250,               // 卡片打字机每块间隔
   typingChunkSize: 8,               // 每块字符数
-  streamThrottleMs: 60,             // 流式节流时间阈值 (ms)
-  streamThrottleChars: 12,          // 流式节流字符阈值 (攒够即刷新)
+  streamThrottleMs: 50,             // 流式节流时间阈值 (ms)
+  streamThrottleChars: 24,          // 流式节流字符阈值 (攒够即刷新)
   dshTimeoutMs: 300000,             // DSH 处理超时
   mediaMaxMb: 20,                   // 媒体文件大小上限
   mediaDir: '',                     // 媒体下载目录 (默认项目内 media/)

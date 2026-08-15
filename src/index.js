@@ -240,15 +240,30 @@ async function processMessage(config, msg, accountId) {
           await ch.connect();
           let seen = '';
           const msgId = await channel.streamReplyLive(config, msg.chatId, msg.messageId, async () => {
-            // 消费 delta 队列: 交给 SDK 节流器控制显示节奏 (streamThrottleChars=12 匀速)
-            // 这里不做手动 pacing, 避免双重控制导致一顿一顿
-            while (deltaQueue.length === 0 && !deltaDone) {
-              await new Promise((r) => setTimeout(r, 20));
+            // 自适应消费: 根据已累计长度动态决定每次步长
+            // 短内容(<60字): 小步 6字 (打字机明显)
+            // 中等(60-400字): 中步 16字
+            // 长内容(>400字): 大步 40字 (减少刷新频率, 防飞书限频/卡顿)
+            const adaptiveStep = () => {
+              if (seen.length < 60) return 6;
+              if (seen.length < 400) return 16;
+              return 40;
+            };
+            // 攒够一步才返回 (自适应), 无数据时等待
+            let acc = '';
+            const step = adaptiveStep();
+            while (true) {
+              if (deltaQueue.length > 0) {
+                acc += deltaQueue.shift();
+                if (acc.length >= step) break;
+                continue;
+              }
+              if (deltaDone) break;
+              await new Promise((r) => setTimeout(r, 15));
             }
-            if (deltaQueue.length > 0) {
-              const chunk = deltaQueue.shift();
-              seen += chunk;
-              return chunk;
+            if (acc) {
+              seen += acc;
+              return acc;
             }
             return null; // 结束
           });
