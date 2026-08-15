@@ -83,7 +83,13 @@ async function streamReply(config, chatId, replyTo, fullText) {
   } catch (e) {
     console.error('[channel] 卡片流式失败, 回退文本:', e.message);
     const ch = getChannel(config);
-    const s2 = await ch.send(chatId, { text: fullText }, { replyTo });
+    // 回退为普通文本消息: 剥离 HTML/折叠标签 (text 消息不渲染 markdown)
+    const plainText = fullText
+      .replace(/<details><summary>[\s\S]*?<\/summary>[\s\S]*?<\/details>/g, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    const s2 = await ch.send(chatId, { text: plainText || '(回复内容无法显示)' }, { replyTo });
     return s2.messageId;
   }
 }

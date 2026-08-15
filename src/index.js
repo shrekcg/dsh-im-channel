@@ -162,68 +162,69 @@ async function processMessage(config, msg, accountId) {
     return;
   }
 
-  // 体验: 立即加"思考中"表情
+  // 体验: 立即加"思考中"表情; 用 try/finally 保证任何路径都移除 (防残留)
   await channel.addReaction(config, msg.messageId, 'THINKING');
+  try {
+    // 构造任务 → 持久会话
+    const senderName = msg.senderName || msg.senderId || '用户';
+    const prompt = [
+      '这是飞书用户 {{sender_name}} 发给你的消息（持久会话，请结合之前的对话记忆回答）：',
+      '',
+      '【消息内容】',
+      '{{content}}',
+    ].join('\n')
+      .replace('{{sender_name}}', senderName)
+      .replace('{{content}}', content + (mediaText ? '\n\n' + mediaText : ''));
 
-  // 构造任务 → 持久会话
-  const senderName = msg.senderName || msg.senderId || '用户';
-  const prompt = [
-    '这是飞书用户 {{sender_name}} 发给你的消息（持久会话，请结合之前的对话记忆回答）：',
-    '',
-    '【消息内容】',
-    '{{content}}',
-  ].join('\n')
-    .replace('{{sender_name}}', senderName)
-    .replace('{{content}}', content + (mediaText ? '\n\n' + mediaText : ''));
+    const { reply, sessionId, tools, thinking } = await session.runSession(config, msg, prompt, log, accountId);
 
-  const { reply, sessionId, tools, thinking } = await session.runSession(config, msg, prompt, log, accountId);
+    // 思考过程: 记录日志 + 以可折叠块展示在回复前
+    let thinkingText = '';
+    if (thinking && thinking.trim()) {
+      log('[thinking]', thinking.slice(0, 100));
+      // 折叠块 (飞书 markdown 支持 details 折叠): 先显示"思考过程", 点击展开
+      const shortThink = thinking.trim().length > 300 ? thinking.trim().slice(0, 300) + '…' : thinking.trim();
+      thinkingText = `<details><summary>💭 思考过程</summary>\n\n${shortThink}\n\n</details>\n\n`;
+    }
 
-  // 思考过程: 记录日志 + 以可折叠块展示在回复前
-  let thinkingText = '';
-  if (thinking && thinking.trim()) {
-    log('[thinking]', thinking.slice(0, 100));
-    // 折叠块 (飞书 markdown 支持 details 折叠): 先显示"思考过程", 点击展开
-    const shortThink = thinking.trim().length > 300 ? thinking.trim().slice(0, 300) + '…' : thinking.trim();
-    thinkingText = `<details><summary>💭 思考过程</summary>\n\n${shortThink}\n\n</details>\n\n`;
+    // 工具追踪: 若 agent 调用了工具, 生成追踪摘要 (作为回复的前置提示)
+    let toolTraceText = '';
+    if (tools && tools.length) {
+      toolTraceText = '\n\n> 🔧 已执行工具: ' + tools.map((t) => `\`${t.name}\``).join(' → ');
+      log('[tools]', tools.map((t) => t.name).join(', '));
+    }
+
+    // 耗时 footer (对齐官方 footer.elapsed)
+    const elapsedMs = Date.now() - t0;
+    const elapsedText = elapsedMs >= 1000 ? `${(elapsedMs / 1000).toFixed(1)}s` : `${elapsedMs}ms`;
+    const footerText = `\n\n---\n⚡ 处理耗时: ${elapsedText}${config.showModel ? ` · 🧠 ${config.showModel}` : ''}`;
+
+    // 回复内容处理: 限制长度 + @ 渲染
+    let finalReply = reply;
+    if (finalReply.length > 1500) finalReply = finalReply.slice(0, 1500) + '…';
+    finalReply = thinkingText + finalReply + toolTraceText + footerText;
+    const { text: mentionText } = mention.convertMentions(finalReply);
+
+    // 卡片流式回复
+    const replyMsgId = await channel.streamReply(config, msg.chatId, msg.messageId, mentionText);
+    log(`[reply] 回复完成 session=${sessionId} elapsed=${elapsedText}`);
+
+    // 记录 bot 回复的上下文 (供 reaction 事件定位会话)
+    if (replyMsgId) {
+      recentMessageContext.set(replyMsgId, {
+        chatId: msg.chatId,
+        chatType: msg.chatType,
+        threadId: msg.threadId,
+        rootId: msg.rootId,
+        senderId: msg.senderId,
+        senderIsBot: true,
+        ts: Date.now(),
+      });
+    }
+  } finally {
+    // 任何情况下都移除"思考中"表情 (防残留)
+    await channel.removeReaction(config, msg.messageId, 'THINKING');
   }
-
-  // 工具追踪: 若 agent 调用了工具, 生成追踪摘要 (作为回复的前置提示)
-  let toolTraceText = '';
-  if (tools && tools.length) {
-    toolTraceText = '\n\n> 🔧 已执行工具: ' + tools.map((t) => `\`${t.name}\``).join(' → ');
-    log('[tools]', tools.map((t) => t.name).join(', '));
-  }
-
-  // 耗时 footer (对齐官方 footer.elapsed)
-  const elapsedMs = Date.now() - t0;
-  const elapsedText = elapsedMs >= 1000 ? `${(elapsedMs / 1000).toFixed(1)}s` : `${elapsedMs}ms`;
-  const footerText = `\n\n---\n⚡ 处理耗时: ${elapsedText}${config.showModel ? ` · 🧠 ${config.showModel}` : ''}`;
-
-  // 回复内容处理: 限制长度 + @ 渲染
-  let finalReply = reply;
-  if (finalReply.length > 1500) finalReply = finalReply.slice(0, 1500) + '…';
-  finalReply = thinkingText + finalReply + toolTraceText + footerText;
-  const { text: mentionText } = mention.convertMentions(finalReply);
-
-  // 卡片流式回复
-  const replyMsgId = await channel.streamReply(config, msg.chatId, msg.messageId, mentionText);
-  log(`[reply] 回复完成 session=${sessionId} elapsed=${elapsedText}`);
-
-  // 记录 bot 回复的上下文 (供 reaction 事件定位会话)
-  if (replyMsgId) {
-    recentMessageContext.set(replyMsgId, {
-      chatId: msg.chatId,
-      chatType: msg.chatType,
-      threadId: msg.threadId,
-      rootId: msg.rootId,
-      senderId: msg.senderId,
-      senderIsBot: true,
-      ts: Date.now(),
-    });
-  }
-
-  // 回复完成后移除"思考中"表情
-  await channel.removeReaction(config, msg.messageId, 'THINKING');
 }
 
 async function main() {
