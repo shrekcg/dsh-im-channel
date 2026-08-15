@@ -291,28 +291,25 @@ async function processMessage(config, msg, accountId) {
       log('[tools]', tools.map((t) => t.name).join(', '));
     }
 
-    // 耗时 footer (只保留耗时, 无工具追踪)
+    // 耗时 footer (对齐 OpenClaw: 底部小字 "已完成 · 耗时 xx")
     const elapsedMs = Date.now() - t0;
     const elapsedText = elapsedMs >= 1000 ? `${(elapsedMs / 1000).toFixed(1)}s` : `${elapsedMs}ms`;
     const thinkMark = thinking && thinking.trim() ? ' · 💭' : '';
-    const footerText = `⚡ 处理耗时: ${elapsedText}${thinkMark}${config.showModel ? ` · 🧠 ${config.showModel}` : ''}`;
+    const footerText = `✅ 已完成 · 耗时 ${elapsedText}${thinkMark}${config.showModel ? ` · ${config.showModel}` : ''}`;
 
-    // 流式主体已实时显示; footer 用单独小消息发送 (editMessage 对卡片消息不支持)
+    // 流式主体已实时显示; 完成后给卡片追加底部小字 footer (note 样式)
     const baseReply = (typeof reply === 'string' && reply) || '';
-    const tail = footerText;
     let replyMsgId = streamOut.streamMsgId;
     if (replyMsgId) {
-      // 主体已流式显示, 工具追踪+耗时作为轻量 footer 消息 (若需要)
-      if (tail) {
-        try {
-          await channel.sendText(config, msg.chatId, tail.trim(), { replyTo: replyMsgId });
-        } catch (e) {
-          log('[reply] footer 发送失败:', e.message);
-        }
-      }
+      // 追加 footer 小字到主体卡片 (hr 分隔 + notation 小字)
+      const bodyClean = baseReply
+        .replace(/<[^>]+>/g, '')       // 去掉 HTML 标签
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+      await channel.appendCardFooter(config, replyMsgId, bodyClean || '(无内容)', footerText);
     } else {
-      // 流式失败: 直接发完整
-      let finalReply = baseReply + tail;
+      // 流式失败: 直接发完整 (正文 + footer)
+      let finalReply = baseReply + '\n\n---\n' + footerText;
       const { text: mentionRendered } = mention.convertMentions(finalReply);
       if (mentionRendered.length > 1500) {
         let truncated = mentionRendered.slice(0, 1500) + '…';

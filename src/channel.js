@@ -187,4 +187,35 @@ async function connect(config) {
   return ch;
 }
 
-module.exports = { getChannel, connect, addReaction, removeReaction, streamReply, streamReplyLive, sendText, sendMedia };
+/**
+ * 给已发送的流式卡片追加底部小字 footer (对齐 OpenClaw: hr 分隔 + notation 小字)
+ * @param {object} config 配置
+ * @param {string} messageId 流式卡片的 message_id
+ * @param {string} bodyText 卡片正文 (流式完成后的完整内容)
+ * @param {string} footerText footer 文本 (如 "✅ 已完成 · 耗时 12.8s")
+ * @returns {Promise<boolean>} 是否成功
+ */
+async function appendCardFooter(config, messageId, bodyText, footerText) {
+  try {
+    const ch = getChannel(config);
+    await ch.connect();
+    const card = {
+      schema: '2.0',
+      config: { wide_screen_mode: true },
+      body: {
+        elements: [
+          { tag: 'markdown', content: bodyText },
+          { tag: 'hr' },
+          { tag: 'markdown', content: footerText, text_size: 'notation' },
+        ],
+      },
+    };
+    await ch.updateCard(messageId, card);
+    return true;
+  } catch (e) {
+    console.error('[channel] 追加卡片 footer 失败:', e.message);
+    return false;
+  }
+}
+
+module.exports = { getChannel, connect, addReaction, removeReaction, streamReply, streamReplyLive, appendCardFooter, sendText, sendMedia };
