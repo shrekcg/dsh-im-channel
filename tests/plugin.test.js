@@ -154,3 +154,41 @@ test('adaptive step: 边界值正确', () => {
   assert.strictEqual(adaptiveStep(399), 16);
   assert.strictEqual(adaptiveStep(400), 40);
 });
+
+// ---------- 流式节奏控制器 (pacing) ----------
+const pacing = require('../src/core/pacing');
+
+test('pacing: 短内容小步慢速', () => {
+  assert.strictEqual(pacing.pacingFor(0).chars, 2);
+  assert.strictEqual(pacing.pacingFor(50).chars, 2);
+  assert.ok(pacing.pacingFor(0).intervalMs >= 40);
+});
+
+test('pacing: 中等内容中步', () => {
+  assert.strictEqual(pacing.pacingFor(80).chars, 3);
+  assert.strictEqual(pacing.pacingFor(300).chars, 3);
+});
+
+test('pacing: 长内容大步略快', () => {
+  assert.strictEqual(pacing.pacingFor(400).chars, 4);
+  assert.strictEqual(pacing.pacingFor(5000).chars, 4);
+});
+
+test('pacing: takeChunk 拆分大头块', () => {
+  // 长块拆成小步
+  const queue = ['这是一段很长的文本内容超过十个字符'];
+  const c1 = pacing.takeChunk(queue, 0); // 短内容: 取2字
+  assert.strictEqual(c1.length, 2);
+  assert.ok(queue[0].length > 0, '剩余部分留在队列');
+});
+
+test('pacing: takeChunk 多块累积到限制', () => {
+  const queue = ['ab', 'cd', 'ef'];
+  const c = pacing.takeChunk(queue, 500); // 长内容: 取4字
+  assert.strictEqual(c, 'abcd');
+  assert.strictEqual(queue.length, 1);
+});
+
+test('pacing: takeChunk 空队列返回空串', () => {
+  assert.strictEqual(pacing.takeChunk([], 0), '');
+});

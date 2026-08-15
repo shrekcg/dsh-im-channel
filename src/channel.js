@@ -27,11 +27,11 @@ function getChannel(config, accountId) {
       dmMode: config.dmPolicy === 'closed' ? 'disabled' : 'open',
       respondToMentionAll: config.respondToMentionAll,
     },
-    // 流式节流: 调小字符阈值让打字机匀速 (默认 50字符/100ms 会突然跳大段)
-    // 可配置: STREAM_THROTTLE_MS / STREAM_THROTTLE_CHARS 环境变量
+    // 流式节流: chars 小于每次喂入量 → 每次 append 立即 PATCH 小块 (渐进显示)
+    // ms 兜底 (长时间无内容也刷新); 可配置: STREAM_THROTTLE_MS / STREAM_THROTTLE_CHARS
     outbound: {
-      streamThrottleMs: config.streamThrottleMs ?? 50,
-      streamThrottleChars: config.streamThrottleChars ?? 24,
+      streamThrottleMs: config.streamThrottleMs ?? 60,
+      streamThrottleChars: config.streamThrottleChars ?? 3,
     },
   });
   channelMap.set(key, ch);

@@ -42,6 +42,7 @@ const mergeForward = require('./inbound/merge-forward');
 const commentHandler = require('./inbound/comment');
 const mention = require('./outbound/mention');
 const { adaptiveStep } = require('./core/adaptive');
+const pacing = require('./core/pacing');
 
 const BRIDGE_DIR = __dirname.replace(/\/src$/, '');
 
@@ -241,23 +242,19 @@ async function processMessage(config, msg, accountId) {
           await ch.connect();
           let seen = '';
           const msgId = await channel.streamReplyLive(config, msg.chatId, msg.messageId, async () => {
-            // 自适应消费: 根据已累计长度动态决定每次步长
-            let acc = '';
-            const step = adaptiveStep(seen.length);
-            while (true) {
-              if (deltaQueue.length > 0) {
-                acc += deltaQueue.shift();
-                if (acc.length >= step) break;
-                continue;
-              }
-              if (deltaDone) break;
-              await new Promise((r) => setTimeout(r, 15));
+            // 流式节奏: 每次取小块 (2-4字) + 按间隔等待, 让 SDK Throttle 靠时间阈值
+            // 逐步 PATCH (而非攒够字符一次跳), 配合飞书 70ms 原生动画 → 平滑打字机
+            // 内部等待到有内容或结束 (不返回空串, 避免 SDK 提前结束流式)
+            while (deltaQueue.length === 0 && !deltaDone) {
+              await new Promise((r) => setTimeout(r, 20));
             }
-            if (acc) {
-              seen += acc;
-              return acc;
+            const chunk = pacing.takeChunk(deltaQueue, seen.length);
+            if (chunk) {
+              seen += chunk;
+              await new Promise((r) => setTimeout(r, pacing.nextInterval(seen.length)));
+              return chunk;
             }
-            return null; // 结束
+            return null; // 生产结束且队列空 → 结束流式
           });
           return { msgId, seen };
         } catch (e) {
