@@ -20,7 +20,7 @@
 | 工具调用追踪 (runner tools + 回复展示) | 全链路验证 (bash 工具追踪) | 2026-08-15 |
 | 20 个飞书 MCP 对象工具 | DSH 端到端 (查日程/搜云盘/查用户) | 2026-08-15 |
 | 多账号多机器人 (accounts + session 隔离) | 单账号验证 + 29 测试 | 2026-08-15 |
-| 诊断与自修复 (doctor 19 项) | 全部通过 | 2026-08-15 |
+| 诊断与自修复 (doctor 21 项) | 全部通过 | 2026-08-15 |
 | Bot 互相 @ 对话 (allowBots) | 单元测试 | 2026-08-15 |
 | 文档评论 @ 机器人 (comment handler) | 代码完成 (待后台订阅) | 2026-08-15 |
 | 权限自动申请 (scope-manager) | 23 个工具权限全开通 | 2026-08-15 |
@@ -56,7 +56,7 @@
 - MCP 工具扩展至 26 个 (新增 update_document/task_create_subtask/search_messages/read_thread_messages/calendar_freebusy/doc_list_comments)
 - 测试扩展至 34 个 (新增 config/comment/scopeApplyUrl 平台测试)
 - 开发测试数据清理 (会话/日志/媒体), .gitignore 创建
-- doctor env 修复 (spawnSync 补 env), 19 项全通过
+- doctor env 修复 (spawnSync 补 env), 21 项全通过
 
 ### ✅ 多账号多机器人 (新)
 

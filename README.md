@@ -1,94 +1,120 @@
+<div align="center">
+
 # DSH ↔ Feishu/Lark Bridge
 
-<p align="center">
-  <a href="https://github.com/shrekcg/dsh-lark-bridge/actions"><img src="https://github.com/shrekcg/dsh-lark-bridge/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
-</p>
+**将 DeepSeek Harness 接入飞书/Lark 的双向智能通道**
 
+[![CI](https://github.com/shrekcg/dsh-lark-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/shrekcg/dsh-lark-bridge/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](package.json)
+[![Tools](https://img.shields.io/badge/MCP%20tools-40-orange.svg)](src/tools/mcp-server.js)
 
-将 [DeepSeek Harness](https://github.com/deepseek-ai) 接入飞书/Lark 的完整双向通道，提供持久会话、话题隔离、群聊、流式卡片、多媒体、飞书对象工具等能力——对齐 OpenClaw 飞书官方插件的体验。
+**English** · [English README](docs/README.en.md)
 
-> **English**: See [README.en.md](docs/README.en.md) (coming soon)
+</div>
+
+---
+
+## 项目简介
+
+**DSH ↔ Feishu/Lark Bridge** 是一个把 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH，AI Agent 运行时）接入飞书 / Lark 的完整双向通道插件。它在飞书里为你的 AI 助手提供「原生应用」般的完整体验：
+
+- 💬 **持久对话**：跨消息上下文记忆，话题隔离，群聊/私聊
+- ⌨️ **真流式输出**：边生成边显示，平滑打字机效果
+- 🛠️ **40 个飞书对象工具**：agent 可直接操作文档、表格、日历、任务、邮件等
+- 🧩 **可插拔插件形态**：不侵入 DSH 核心，一键安装/卸载
+
+对齐 [OpenClaw 飞书官方插件](https://github.com/larksuite/openclaw-lark) 的能力与体验，但基于 DSH 生态构建。
+
+---
 
 ## ✨ 功能特性
 
-### 对话体验
-- **持久对话会话**：跨消息上下文记忆（基于 DSH `agents.resume`）
-- **话题独立上下文**：每个话题（thread）完全独立的 session，如从主线 fork
-- **群聊支持**：不 @ 也响应（可配置为仅 @ 响应，或按群细粒度策略）
-- **思考表情**：收到消息立即显示 🤔 THINKING，回复完成后移除
-- **卡片流式打字机**：回复逐字打出，无「已编辑」标记
-- **@ 用户渲染**：AI 回复中可 @ 用户/所有人（原生 mention）
-- **Bot 互 @ 对话**：`allowBots` 配置允许 bot 间对话
+### 💬 对话体验
+| 特性 | 说明 |
+|---|---|
+| 持久会话 | 跨消息上下文记忆（DSH `agents.resume`） |
+| 话题隔离 | 每个话题独立上下文，如从主线 fork |
+| 群聊支持 | 不 @ 也响应，或按群细粒度策略（白名单/仅@） |
+| 思考表情 | 收到消息显示 THINKING，回复后自动移除 |
+| 真流式输出 | 边生成边显示，平滑打字机（自适应节奏） |
+| 底部耗时 | 回复底部小字「已完成 · 耗时 xx」，对齐 OpenClaw |
+| @ 用户渲染 | 回复中可 @ 用户/所有人（原生 mention） |
+| Bot 互 @ | 支持 bot 间对话（可配置） |
 
-### 消息能力
-- **多媒体收发**：图片/文件/音频/视频消息下载与发送
-- **合并转发**：merge-forward 识别与展开
-- **表情反馈感知**：用户 👍/❤️ 等表情反馈给 agent（需后台订阅事件）
+### 📎 消息能力
+| 特性 | 说明 |
+|---|---|
+| 多媒体收发 | 图片/文件/音频/视频下载与发送 |
+| 合并转发 | 合并转发消息识别与展开 |
+| 表情反馈 | 👍/❤️ 等表情反馈给 agent |
+| 文档评论@ | 文档评论中 @ 机器人触发对话 |
 
-### 飞书对象工具（MCP）
-通过 Model Context Protocol 向 DSH 暴露 **40 个飞书工具**，agent 以 `mcp__feishu__*` 原生调用：
+### 🛠️ 飞书对象工具（MCP × 40）
+
+通过 [Model Context Protocol](https://modelcontextprotocol.io) 暴露 **40 个飞书工具**，agent 以 `mcp__feishu__*` 原生调用：
 
 | 类别 | 工具 |
 |---|---|
-| 消息 | `send_message` `read_messages` `search_chats` `get_chat_members` |
-| 文档 | `read_document` `create_document` |
-| 日历 | `calendar_agenda` `create_calendar_event` |
-| 任务 | `get_my_tasks` `create_task` |
-| 多维表格 | `base_read_records` |
+| 消息 | `send_message` `read_messages` `search_chats` `get_chat_members` `search_messages` `read_thread_messages` |
+| 文档 | `read_document` `create_document` `update_document` `doc_insert_media` `doc_list_comments` |
+| 日历 | `calendar_agenda` `create_calendar_event` `calendar_freebusy` `calendar_search_events` `calendar_add_attendee` |
+| 任务 | `get_my_tasks` `create_task` `task_create_subtask` `task_get_detail` `task_related` `task_add_comment` |
+| 多维表格 | `base_read_records` `base_create_table` `base_create_record` `base_create_field` `base_create_view` |
 | 电子表格 | `sheets_read` |
-| Wiki | `wiki_search` |
+| Wiki | `wiki_search` `wiki_list_spaces` `wiki_create_node` |
 | 邮件 | `mail_list` `mail_send` |
 | 云盘 | `drive_search` `drive_list_folder` |
-| 妙记 | `minutes_search` |
-| 审批 | `approval_list_todo` |
-| 搜索 | `search_docs` |
-| 文档扩展 | `update_document` `doc_insert_media` `doc_list_comments` |
-| 任务扩展 | `task_create_subtask` `task_get_detail` `task_related` |
-| 日历扩展 | `calendar_freebusy` |
-| 消息扩展 | `search_messages` `read_thread_messages` |
-| 知识库扩展 | `wiki_list_spaces` `wiki_create_node` |
-| Base 扩展 | `base_create_field` `base_create_view` |
-| 日历参会人 | `calendar_add_attendee` |
+| 妙记/审批/搜索 | `minutes_search` `approval_list_todo` `search_docs` |
 | 通讯录 | `get_user_info` |
 
-### 平台能力
-- **多账号多机器人**：一个进程管理多个飞书 bot，session 自动隔离
-- **诊断自修复**：`npm run doctor`（19 项检查 + `--fix` 自动修复）
-- **权限管理**：自动检测缺失权限并生成一键申请链接
-- **工具追踪**：回复中展示 agent 执行的工具链
+### 🧩 平台能力
+| 特性 | 说明 |
+|---|---|
+| 多账号多机器人 | 一个进程管理多个飞书 bot，session 自动隔离 |
+| 可插拔插件 | 一键安装/卸载，不侵入 DSH 核心 |
+| 初始化向导 | `npm run setup` 6 步引导（应用/权限/授权/事件订阅） |
+| 诊断自修复 | `npm run doctor` 21 项检查 + `--fix` 自动修复 |
+| 功能清单 | `npm run features` 查看各能力配置状态 |
+| 权限管理 | 自动检测缺失权限，生成一键申请链接 |
+| CI | GitHub Actions 自动测试 + MCP 冒烟验证 |
 
-## 📦 安装
+---
+
+## 📦 快速开始
 
 ### 前置依赖
-- [DSH](https://github.com/deepseek-ai)（DeepSeek Harness）
-- [lark-cli](https://www.npmjs.com/package/@larksuite/cli)（飞书官方 CLI）
-- Node.js ≥ 18
 
-### 步骤
+| 依赖 | 说明 |
+|---|---|
+| [DSH](https://github.com/deepseek-ai) | DeepSeek Harness 运行时 |
+| [lark-cli](https://www.npmjs.com/package/@larksuite/cli) | 飞书官方 CLI（工具执行后端） |
+| Node.js ≥ 18 | 运行环境 |
+
+### 安装
 
 ```bash
-# 1. 克隆本项目
-git clone <your-repo-url> dsh-lark-bridge
+# 1. 克隆
+git clone https://github.com/shrekcg/dsh-lark-bridge.git
 cd dsh-lark-bridge
 
 # 2. 安装依赖
 npm install
 
-# 3. 配置飞书应用
-#    在飞书开放平台创建应用, 启用机器人能力, 申请权限
-#    配置方式见 docs/SETUP.md
+# 3. 初始化向导 (创建应用/授权/事件订阅 一步步引导)
+npm run setup
 
-# 4. 安装 DSH 持久会话插件
-#    将 dsh-lark-session 复制到 DSH headless profile:
-cp -r dsh-lark-session ~/.dsh/profiles/headless/node_modules/
+# 4. 安装为插件 + 常驻服务
+npm run install-bridge
 
-# 5. 启动
-npm start
-# 或注册为常驻服务 (macOS):
-cp com.dsh.lark-bridge.plist ~/Library/LaunchAgents/
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.dsh.lark-bridge.plist
+# 5. 验证
+npm run doctor        # 诊断 (21 项)
+npm run features      # 功能清单
 ```
+
+> 详细配置见 [docs/SETUP.md](docs/SETUP.md) 与 [docs/INSTALL.md](docs/INSTALL.md)。
+
+---
 
 ## 🔧 配置
 
@@ -101,73 +127,151 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.dsh.lark-bridge.plis
 | `REQUIRE_MENTION` | `false` | 群聊是否要求 @ 才响应 |
 | `ALLOW_BOTS` | `false` | bot 互 @：`false`/`true`/`mentions` |
 | `GROUP_POLICY` | `open` | 群策略：`open`/`allowlist`/`closed` |
+| `GROUP_ALLOW_FROM` | — | 群白名单（逗号分隔 open_id） |
 | `REACTION_NOTIFICATIONS` | `off` | 表情反馈：`off`/`own`/`all` |
-| `TYPING_CHUNK_MS` | `250` | 卡片打字机间隔 |
+| `STREAM_THROTTLE_MS` | `60` | 流式节流时间阈值 (ms) |
+| `STREAM_THROTTLE_CHARS` | `3` | 流式节流字符阈值 |
+| `ALLOW_USER_WRITES` | — | 允许 user 身份写操作（默认仅发消息用 bot） |
 | `DSH_BIN` / `DSH_HOME` | — | DSH 路径 |
+
+---
 
 ## 🚀 使用
 
+### 对话
 - **私聊**：直接在飞书单聊机器人
-- **群聊**：拉机器人进群, 直接发消息（或 @ 取决于配置）
-- **话题**：在群消息上创建话题, 独立上下文
-- **飞书工具**：告诉 agent "查日程 / 读文档 / 发消息给 XX"
+- **群聊**：拉机器人进群，直接发消息（或 @，取决于配置）
+- **话题**：在群消息上创建话题，获得独立上下文
+
+### 飞书工具
+直接用自然语言告诉 agent：
+- 「帮我查一下今天的日程」
+- 「创建一个文档，内容是……」
+- 「给 XX 发一条消息」
+- 「列一下我的待办任务」
 
 ### 管理命令
 
 ```bash
-npm start        # 启动
-npm run doctor   # 诊断 (--fix 自动修复)
-npm test         # 运行测试 (29 用例)
-npm run mcp      # 单独运行 MCP server
+npm start                # 启动 bridge
+npm run setup            # 初始化向导
+npm run doctor           # 诊断 (--fix 自动修复)
+npm run features         # 功能配置清单
+npm test                 # 运行测试 (65 用例)
+npm run install-bridge   # 安装插件 + 常驻服务
+npm run uninstall-bridge # 卸载 (可逆, 不影响 DSH 核心)
+npm run mcp              # 单独运行 MCP server
 ```
+
+---
 
 ## 🏗️ 架构
 
 ```
-飞书 App ──SDK WSClient──▶ bridge (src/index.js)
-                              │  policy: 群策略/@/白名单/bot
-                              │  media: 多媒体下载
-                              │  merge-forward: 合并转发展开
-                              ▼
-                        DSH 持久会话 runner (agents.resume)
-                              │  mcp__feishu__* 工具调用
-                              ▼
-                   卡片流式回复 + 表情 + @ 渲染
+┌──────────────────────────────────────────────────┐
+│                     飞书 / Lark                   │
+│   用户私聊 · 群聊 · 话题 · 表情 · 评论 · 卡片交互   │
+└───────────────────────┬──────────────────────────┘
+                        │ WebSocket 长连接 (SDK)
+┌───────────────────────▼──────────────────────────┐
+│               bridge (常驻进程)                   │
+│  ┌─────────┐ ┌────────────┐ ┌─────────────────┐  │
+│  │ channel │ │  inbound   │ │    outbound     │  │
+│  │ (SDK)   │ │ policy     │ │ stream (真流式)  │  │
+│  │         │ │ media      │ │ mention (@渲染)  │  │
+│  │         │ │ reaction   │ │ footer (耗时)   │  │
+│  │         │ │ merge-fw   │ │                 │  │
+│  └────┬────┘ └─────┬──────┘ └────────┬────────┘  │
+│       └────────────┼─────────────────┘           │
+└────────────────────┼─────────────────────────────┘
+                     │ DSH headless (持久会话)
+              ┌──────▼──────┐
+              │  agents.resume│
+              │  + MCP client │
+              └──────┬──────┘
+                     │ mcp__feishu__* (40 工具)
+              ┌──────▼──────┐
+              │ Feishu MCP  │
+              │ server      │
+              └──────┬──────┘
+                     │ lark-cli
+              ┌──────▼──────┐
+              │  飞书 OpenAPI│
+              └─────────────┘
 ```
 
-详细架构见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)，路线图见 [docs/ROADMAP.md](docs/ROADMAP.md)。
+- **接收**：`@larksuite/channel` SDK WebSocket 长连接（无需公网回调地址）
+- **会话**：固定 session + DSH `agents.resume`（跨消息记忆）
+- **工具**：40 个 MCP 工具，lark-cli 执行后端
+
+详见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+
+---
 
 ## 📁 项目结构
 
 ```
-src/
-├── index.js              # 入口 (多账号)
-├── config.js             # 配置管理
-├── channel.js            # 飞书通道 (SDK)
-├── session.js            # 持久会话
-├── core/
-│   └── scope-manager.js  # 权限管理
-├── inbound/
-│   ├── policy.js         # 群策略/bot/@
-│   ├── media.js          # 多媒体接收
-│   ├── reaction.js       # 表情反馈
-│   ├── merge-forward.js  # 合并转发
-│   └── comment.js        # 文档评论@
-├── outbound/
-│   └── mention.js        # @渲染
-├── tools/
-│   └── mcp-server.js     # 飞书 MCP server (20 工具)
-└── commands/
-    └── doctor.js         # 诊断自修复
-tests/                    # 29 个单元测试
-docs/                     # 文档
+dsh-lark-bridge/
+├── src/
+│   ├── index.js              # 入口 (多账号消息流水线)
+│   ├── config.js             # 配置管理
+│   ├── channel.js            # 飞书通道 (SDK + 流式)
+│   ├── session.js            # 持久会话 + 互斥锁
+│   ├── core/
+│   │   ├── scope-manager.js  # 权限管理
+│   │   ├── adaptive.js       # 流式自适应步长
+│   │   └── pacing.js         # 流式节奏控制
+│   ├── inbound/
+│   │   ├── policy.js         # 群策略/bot/@
+│   │   ├── media.js          # 多媒体接收
+│   │   ├── reaction.js       # 表情反馈
+│   │   ├── merge-forward.js  # 合并转发
+│   │   └── comment.js        # 文档评论@
+│   ├── outbound/
+│   │   └── mention.js        # @渲染
+│   ├── tools/
+│   │   └── mcp-server.js     # 飞书 MCP server (40 工具)
+│   └── commands/
+│       ├── doctor.js         # 诊断自修复 (21 项)
+│       └── features.js       # 功能配置清单
+├── dsh-lark-session/         # DSH 插件 (持久会话 runner)
+├── scripts/
+│   ├── install.js            # 安装/卸载/状态
+│   └── setup.js              # 初始化向导
+├── tests/                    # 65 个单元测试
+└── docs/                     # 文档
 ```
+
+---
+
+## 📚 文档
+
+| 文档 | 说明 |
+|---|---|
+| [SETUP.md](docs/SETUP.md) | 详细配置指南 |
+| [INSTALL.md](docs/INSTALL.md) | 插件化安装指南 |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | 架构设计 |
+| [README.en.md](docs/README.en.md) | English README |
+
+---
+
+## 🧪 测试
+
+```bash
+npm test    # 65 个单元测试
+```
+
+CI（GitHub Actions）自动运行：单元测试 + 语法检查 + MCP server 冒烟验证。
+
+---
 
 ## 📄 License
 
-MIT
+[MIT](LICENSE)
 
 ## 🙏 致谢
 
+- [DeepSeek Harness](https://github.com/deepseek-ai) — Agent 运行时
 - [OpenClaw](https://github.com/openclaw/openclaw) 及 [飞书官方插件](https://github.com/larksuite/openclaw-lark)
-- [@larksuite/channel](https://www.npmjs.com/package/@larksuite/channel) SDK
+- [@larksuite/channel](https://www.npmjs.com/package/@larksuite/channel) — 飞书 SDK
+- [lark-cli](https://www.npmjs.com/package/@larksuite/cli) — 飞书 CLI

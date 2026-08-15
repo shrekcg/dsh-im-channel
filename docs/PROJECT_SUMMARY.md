@@ -175,11 +175,11 @@
 
 | 项 | 状态 |
 |---|---|
-| **GitHub** | ✅ https://github.com/shrekcg/dsh-lark-bridge （私有，可改公开） |
+| **GitHub** | ✅ https://github.com/shrekcg/dsh-lark-bridge （公开） |
 | **版本** | 0.2.0（首个开源版） |
 | **License** | MIT |
 | **测试** | 44 个单元测试全部通过 |
-| **诊断** | doctor 19 项全部通过 |
+| **诊断** | doctor 21 项全部通过 |
 | **运行** | 本地 launchd 常驻（com.dsh.lark-bridge） |
 | **工具** | 40 个 MCP 工具，命令全部验证 |
 | **文档** | README（中/英）、ARCHITECTURE、SETUP、INSTALL、CHANGELOG、CONTRIBUTING |
