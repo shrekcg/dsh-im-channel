@@ -25,12 +25,14 @@ const sessionQueues = new Map();
  */
 async function withSessionLock(sessionId, task) {
   const prev = sessionQueues.get(sessionId) || Promise.resolve();
-  const next = prev.then(task, task); // 前一个无论成败都继续
-  sessionQueues.set(sessionId, next.catch(() => {}));
+  // 任务只执行一次: 链在前一个之后, 结果供调用方 await; 守卫吞掉拒绝防队列中断
+  const next = prev.then(task, task);
+  const guard = next.catch(() => {});
+  sessionQueues.set(sessionId, guard);
   try {
     return await next;
   } finally {
-    if (sessionQueues.get(sessionId) === next) {
+    if (sessionQueues.get(sessionId) === guard) {
       sessionQueues.delete(sessionId);
     }
   }
