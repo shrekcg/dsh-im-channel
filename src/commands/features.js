@@ -113,12 +113,12 @@ function checkMultiAccount() {
 }
 
 function checkService() {
-  // 多重检测: launchctl list (当前会话) + pgrep 进程兜底
-  const lc = run('/bin/launchctl', ['list']);
-  const inList = lc.code === 0 && /com\.dsh\.lark-bridge/.test(lc.out);
+  // 检测 launchd 服务真实状态: launchctl print 可跨会话读取 (裸 launchctl list 在非 GUI 会话返回空, 会误报)
+  const lp = run('/bin/launchctl', ['print', `gui/${process.getuid()}/com.dsh.lark-bridge`]);
+  const viaPrint = lp.code === 0 && /state\s*=\s*running/.test(lp.out);
   const pg = run('/bin/pgrep', ['-f', 'dsh-lark-bridge/src/index.js']);
   const procRunning = pg.code === 0;
-  return { running: inList || procRunning };
+  return { running: viaPrint || procRunning };
 }
 
 // ---------- 主入口 ----------
