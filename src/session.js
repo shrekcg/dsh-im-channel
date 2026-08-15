@@ -52,7 +52,7 @@ function deriveSessionId(msg, accountId) {
   return `${prefix}feishu-${sender}`;
 }
 
-/** 执行子进程并返回 {code, out, err}, 支持真超时强杀 (含进程组) */
+/** 执行子进程并返回 {code, out, err}, 支持真超时强杀 (含进程组) 与流式行回调 */
 function run(bin, args, opts = {}, log = () => {}) {
   return new Promise((resolve) => {
     // detached + 独立进程组, 超时才能杀整个进程树 (防子进程残留)
@@ -60,6 +60,7 @@ function run(bin, args, opts = {}, log = () => {}) {
     let out = '';
     let err = '';
     let settled = false;
+    let lineBuf = '';
     const done = (res) => {
       if (settled) return;
       settled = true;
@@ -72,7 +73,20 @@ function run(bin, args, opts = {}, log = () => {}) {
       try { process.kill(-child.pid, 'SIGKILL'); } catch (e) {} // 负 PID = 进程组
       try { child.kill('SIGKILL'); } catch (e) {}
     }, timeoutMs) : null;
-    child.stdout.on('data', (d) => (out += d.toString()));
+    child.stdout.on('data', (d) => {
+      const chunk = d.toString();
+      out += chunk;
+      // 流式: 按行回调 (opts.onLine), 剩余半行缓存
+      if (opts.onLine) {
+        lineBuf += chunk;
+        let idx;
+        while ((idx = lineBuf.indexOf('\n')) !== -1) {
+          const line = lineBuf.slice(0, idx).trim();
+          lineBuf = lineBuf.slice(idx + 1);
+          if (line) opts.onLine(line);
+        }
+      }
+    });
     child.stderr.on('data', (d) => (err += d.toString()));
     child.on('close', (code) => done({ code, out, err }));
     child.on('error', (e) => done({ code: -1, out, err: String(e) }));
@@ -86,44 +100,71 @@ function run(bin, args, opts = {}, log = () => {}) {
  * @param {function} log 日志函数
  * @returns {Promise<{reply: string, sessionId: string, seq?: number}>}
  */
-async function runSession(config, msg, prompt, log = () => {}, accountId) {
+async function runSession(config, msg, prompt, log = () => {}, accountId, onDelta) {
   const sessionId = deriveSessionId(msg, accountId);
   // 同一 session 串行执行 (并发安全), 不同 session 并行
-  return withSessionLock(sessionId, () => doRunSession(config, sessionId, prompt, log));
+  return withSessionLock(sessionId, () => doRunSession(config, sessionId, prompt, log, onDelta));
 }
 
-async function doRunSession(config, sessionId, prompt, log) {
+async function doRunSession(config, sessionId, prompt, log, onDelta) {
   const patchPath = path.join(config.dshHome, 'profiles', 'headless', 'node_modules', 'dsh-lark-session', 'cordis.patch.yml');
 
   log(`[session] 调用持久会话 ${sessionId} ...`);
   const t0 = Date.now();
+  let streamedText = '';
   const res = await run(
     config.dshBin,
     ['--profile', 'headless', '--patch', patchPath, '--session', sessionId, prompt],
     {
       env: { ...process.env, DSH_HOME: config.dshHome },
       timeout: config.dshTimeoutMs,
+      // 流式行回调: 解析 runner 的 NDJSON 流 (delta/done)
+      onLine: (line) => {
+        try {
+          const msg2 = JSON.parse(line);
+          if (msg2.type === 'delta' && msg2.text) {
+            streamedText += msg2.text;
+            if (onDelta) onDelta(msg2.text);
+          }
+        } catch (e) { /* 忽略非 JSON 行 */ }
+      },
     },
     log
   );
   const dt = ((Date.now() - t0) / 1000).toFixed(1);
   log(`[session] 完成 ${dt}s code=${res.code}`);
 
-  // 解析 runner 的 JSON 输出 {sessionId, text, reason, seq, tools, thinking}
-  let reply = '';
+  // 解析 runner 的 NDJSON 流输出: 找 type:'done' 行 (含 text/tools/thinking)
+  let reply = streamedText || '';
   let outText = (res.out || '').trim();
   let seq;
   let tools = [];
   let thinking = '';
-  try {
-    const parsed = JSON.parse(outText.split('\n')[0]);
-    reply = (parsed.text || '').trim();
-    seq = parsed.seq;
-    tools = Array.isArray(parsed.tools) ? parsed.tools : [];
-    thinking = parsed.thinking || '';
-    log(`[session] session=${parsed.sessionId} seq=${parsed.seq} reason=${parsed.reason} tools=${tools.length} thinking=${thinking ? 'yes' : 'no'}`);
-  } catch (e) {
-    reply = outText; // 非 JSON 回退
+  // 逐行找 done 消息
+  for (const line of outText.split('\n')) {
+    try {
+      const parsed = JSON.parse(line);
+      if (parsed.type === 'done') {
+        if (!reply) reply = (parsed.text || '').trim();
+        seq = parsed.seq;
+        tools = Array.isArray(parsed.tools) ? parsed.tools : [];
+        thinking = parsed.thinking || '';
+        log(`[session] session=${parsed.sessionId} seq=${parsed.seq} reason=${parsed.reason} tools=${tools.length} thinking=${thinking ? 'yes' : 'no'}`);
+        break;
+      }
+    } catch (e) { /* 跳过非 JSON 行 */ }
+  }
+  // 兼容旧格式 (单 JSON 无 type)
+  if (!reply && !seq) {
+    try {
+      const parsed = JSON.parse(outText.split('\n')[0]);
+      reply = (parsed.text || '').trim();
+      seq = parsed.seq;
+      tools = Array.isArray(parsed.tools) ? parsed.tools : [];
+      thinking = parsed.thinking || '';
+    } catch (e) {
+      reply = outText; // 非 JSON 回退
+    }
   }
   if (!reply && res.err) reply = '（处理出错）' + res.err.slice(0, 200);
   if (!reply) reply = '（无回复）';

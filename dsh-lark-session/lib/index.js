@@ -117,6 +117,34 @@ async function run(ctx, task, sessionId, io) {
   await agent.whenIdle();
   const firstSeq = agent.session.seq;
 
+  // 真流式: 订阅 session/event, 实时输出 assistant 文本增量 (NDJSON 流)
+  // bridge 端逐行读取, 边生成边推送到飞书卡片
+  let streamStarted = false;
+  const emitDelta = (text) => {
+    if (!text) return;
+    if (!streamStarted) {
+      streamStarted = true;
+      io.stdout.write(JSON.stringify({ type: "delta", sessionId: String(sid) }) + "\n");
+    }
+    // 逐块输出, 便于 bridge 端边收边推
+    const chunk = 24;
+    for (let i = 0; i < text.length; i += chunk) {
+      io.stdout.write(JSON.stringify({ type: "delta", text: text.slice(i, i + chunk) }) + "\n");
+    }
+  };
+  const off = ctx.on("session/event", (sess, event) => {
+    if (sess !== agent.session) return;
+    if (event.seq < firstSeq) return;
+    if (event.type === "assistant/message") {
+      const blocks = event.data?.message?.content || [];
+      const text = blocks
+        .filter((b) => b.type === "text")
+        .map((b) => b.text)
+        .join("");
+      if (text) emitDelta(text);
+    }
+  });
+
   agent.followup(
     createUserMessage({
       content: [{ type: "text", text: task }],
@@ -124,11 +152,13 @@ async function run(ctx, task, sessionId, io) {
     })
   );
   await agent.whenIdle();
+  off && off();
   await sessions.flush(agent.session);
 
   const outcome = summarize(agent.session.events, firstSeq);
   io.stdout.write(
     JSON.stringify({
+      type: "done",
       sessionId: String(sid),
       text: outcome.text,
       reason: outcome.reason?.kind || "completed",

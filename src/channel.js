@@ -58,7 +58,56 @@ async function removeReaction(config, messageId, emoji = 'THINKING') {
 }
 
 /**
- * 卡片流式打字机回复 (卡片整体替换, 不显示「已编辑」)
+ * 实时流式回复: 边生成边 append 到飞书卡片 (真流式)
+ * @param {object} config 配置
+ * @param {string} chatId 会话 ID
+ * @param {string} replyTo 回复的消息 ID
+ * @param {function} onChunk 生成回调: 返回 Promise 或直接返回文本块; 返回 null/undefined 表示结束
+ * @returns {Promise<string>} 消息 ID
+ */
+async function streamReplyLive(config, chatId, replyTo, onChunk) {
+  try {
+    const ch = getChannel(config);
+    await ch.connect();
+    const res = await ch.stream(
+      chatId,
+      {
+        markdown: async (c) => {
+          // 持续从 onChunk 取文本块并 append (SDK 节流器控制更新节奏)
+          while (true) {
+            const chunk = await onChunk();
+            if (!chunk) break;
+            c.append(chunk);
+          }
+        },
+      },
+      { replyTo }
+    );
+    return res.messageId;
+  } catch (e) {
+    console.error('[channel] 实时流式失败, 回退文本:', e.message);
+    const ch = getChannel(config);
+    // 回退: 收集所有块后发文本 (剥离 HTML)
+    let full = '';
+    try {
+      while (true) {
+        const chunk = await onChunk();
+        if (!chunk) break;
+        full += chunk;
+      }
+    } catch (e2) {}
+    const plainText = full
+      .replace(/<details><summary>[\s\S]*?<\/summary>[\s\S]*?<\/details>/g, '')
+      .replace(/<[^>]+>/g, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    const s2 = await ch.send(chatId, { text: plainText || '(回复内容无法显示)' }, { replyTo });
+    return s2.messageId;
+  }
+}
+
+/**
+ * 卡片流式打字机回复 (处理后播放, 兼容旧行为)
  * @returns {Promise<string>} 消息 ID
  */
 async function streamReply(config, chatId, replyTo, fullText) {
@@ -138,4 +187,4 @@ async function connect(config) {
   return ch;
 }
 
-module.exports = { getChannel, connect, addReaction, removeReaction, streamReply, sendText, sendMedia };
+module.exports = { getChannel, connect, addReaction, removeReaction, streamReply, streamReplyLive, sendText, sendMedia };

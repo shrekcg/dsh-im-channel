@@ -174,9 +174,9 @@ async function processMessage(config, msg, accountId) {
     if (hasImage) {
       const vision = media.detectVisionCapability(config.dshHome);
       if (!vision.hasPlugin) {
-        visionHint = '\n\n⚠️ 注意: 你发送了图片, 但当前 DSH 未配置视觉理解插件, 我无法识别图片内容。配置方法: 安装 vision 插件 (如 visionpower) 并配置多模态模型。';
+        visionHint = '\n\n⚠️ 注意: 你发送了图片, 但当前环境未配置视觉识别插件, 无法识别图片内容。需配置视觉识别插件后才能看图。';
       } else if (!vision.isVisionModel) {
-        visionHint = `\n\n⚠️ 注意: 你发送了图片, 当前默认模型 (${vision.model || '未知'}) 可能不支持视觉, 我可能无法识别图片内容。可切换到多模态模型 (如 visionpower 配置)。`;
+        visionHint = `\n\n⚠️ 注意: 你发送了图片, 但当前默认模型 (${vision.model || '未知'}) 可能不支持视觉识别, 可能无法识别图片内容。需切换为支持视觉识别的模型。`;
       }
     }
   } catch (e) {
@@ -223,48 +223,91 @@ async function processMessage(config, msg, accountId) {
       .replace('{{sender_name}}', senderName)
       .replace('{{content}}', msgContent);
 
-    const { reply, sessionId, tools, thinking } = await session.runSession(config, msg, prompt, log, accountId);
+    // 真流式: 生产-消费队列, onDelta 实时推入, 卡片流式消费显示
+    const deltaQueue = [];
+    let deltaDone = false;
+    let streamOut = { reply: '', sessionId: '', tools: [], thinking: '', streamMsgId: null, streamedText: '' };
+    {
+      const runPromise = session.runSession(config, msg, prompt, log, accountId, (chunk) => {
+        deltaQueue.push(chunk); // 生产: 实时推入队列
+      });
+      // 消费: 同时启动卡片流式, 从队列取增量实时显示
+      const consumePromise = (async () => {
+        try {
+          const ch = channel.getChannel(config);
+          await ch.connect();
+          let seen = '';
+          const msgId = await channel.streamReplyLive(config, msg.chatId, msg.messageId, async () => {
+            while (deltaQueue.length === 0 && !deltaDone) {
+              await new Promise((r) => setTimeout(r, 50)); // 等待增量
+            }
+            const chunk = deltaQueue.shift();
+            if (chunk) {
+              seen += chunk;
+              return chunk;
+            }
+            return null; // 结束
+          });
+          return { msgId, seen };
+        } catch (e) {
+          log('[stream-live] error:', e.message);
+          return { msgId: null, seen: '' };
+        }
+      })();
+      const result = await runPromise;
+      deltaDone = true; // 通知消费结束
+      const consumed = await consumePromise;
+      streamOut = { ...result, streamMsgId: consumed.msgId, streamedText: consumed.seen };
+    }
+    const { reply, sessionId, tools, thinking } = streamOut;
 
-    // 思考过程: 记录日志 + 以可折叠块展示在回复前
-    let thinkingText = '';
+    // 思考过程: 记录日志 (飞书不支持 details 折叠, 不注入正文避免标签泄漏)
     if (thinking && thinking.trim()) {
-      log('[thinking]', thinking.slice(0, 100));
-      // 折叠块 (飞书 markdown 支持 details 折叠): 先显示"思考过程", 点击展开
-      const shortThink = thinking.trim().length > 300 ? thinking.trim().slice(0, 300) + '…' : thinking.trim();
-      thinkingText = `<details><summary>💭 思考过程</summary>\n\n${shortThink}\n\n</details>\n\n`;
+      log('[thinking]', thinking.slice(0, 200));
     }
 
-    // 工具追踪: 若 agent 调用了工具, 生成追踪摘要 (作为回复的前置提示)
+    // 工具追踪: 若 agent 调用了工具, 生成追踪摘要
     let toolTraceText = '';
     if (tools && tools.length) {
       toolTraceText = '\n\n> 🔧 已执行工具: ' + tools.map((t) => `\`${t.name}\``).join(' → ');
       log('[tools]', tools.map((t) => t.name).join(', '));
     }
 
-    // 耗时 footer (对齐官方 footer.elapsed)
+    // 耗时 footer
     const elapsedMs = Date.now() - t0;
     const elapsedText = elapsedMs >= 1000 ? `${(elapsedMs / 1000).toFixed(1)}s` : `${elapsedMs}ms`;
-    const footerText = `\n\n---\n⚡ 处理耗时: ${elapsedText}${config.showModel ? ` · 🧠 ${config.showModel}` : ''}`;
+    const thinkMark = thinking && thinking.trim() ? ' · 💭' : '';
+    const footerText = `\n\n---\n⚡ 处理耗时: ${elapsedText}${thinkMark}${config.showModel ? ` · 🧠 ${config.showModel}` : ''}`;
 
-    // 回复内容处理: 先 @ 渲染再截断 (避免截断切断 <at> 标签)
-    let finalReply = reply;
-    const { text: mentionRendered } = mention.convertMentions(finalReply);
-    if (mentionRendered.length > 1500) {
-      // 截断到 1500, 但确保不切断未闭合的 <at> 标签
-      let truncated = mentionRendered.slice(0, 1500) + '…';
-      const openAt = truncated.lastIndexOf('<at');
-      const closeAt = truncated.lastIndexOf('</at>');
-      if (openAt > closeAt) truncated = truncated.slice(0, openAt) + '…'; // 标签未闭合则回退到标签前
-      finalReply = truncated;
+    // 流式主体已实时显示; footer 用单独小消息发送 (editMessage 对卡片消息不支持)
+    const baseReply = (typeof reply === 'string' && reply) || '';
+    const tail = toolTraceText + footerText;
+    let replyMsgId = streamOut.streamMsgId;
+    if (replyMsgId) {
+      // 主体已流式显示, 工具追踪+耗时作为轻量 footer 消息 (若需要)
+      if (tail) {
+        try {
+          await channel.sendText(config, msg.chatId, tail.trim(), { replyTo: replyMsgId });
+        } catch (e) {
+          log('[reply] footer 发送失败:', e.message);
+        }
+      }
     } else {
-      finalReply = mentionRendered;
+      // 流式失败: 直接发完整
+      let finalReply = baseReply + tail;
+      const { text: mentionRendered } = mention.convertMentions(finalReply);
+      if (mentionRendered.length > 1500) {
+        let truncated = mentionRendered.slice(0, 1500) + '…';
+        const openAt = truncated.lastIndexOf('<at');
+        const closeAt = truncated.lastIndexOf('</at>');
+        if (openAt > closeAt) truncated = truncated.slice(0, openAt) + '…';
+        finalReply = truncated;
+      } else {
+        finalReply = mentionRendered;
+      }
+      replyMsgId = await channel.streamReply(config, msg.chatId, msg.messageId, finalReply);
     }
-    finalReply = thinkingText + finalReply + toolTraceText + footerText;
-    const { text: mentionText } = mention.convertMentions(finalReply);
-
-    // 卡片流式回复
-    const replyMsgId = await channel.streamReply(config, msg.chatId, msg.messageId, mentionText);
-    log(`[reply] 回复完成 session=${sessionId} elapsed=${elapsedText}`);
+    log(`[reply] 回复完成 session=${sessionId} elapsed=${elapsedText} streamed=${streamOut.streamedText.length}B`);
 
     // 记录 bot 回复的上下文 (供 reaction 事件定位会话)
     if (replyMsgId) {

@@ -182,11 +182,11 @@ function main() {
       name: '图片视觉理解',
       status: vision.hasVisionPlugin && isVisionModel(vision.model) ? 'ok' : vision.hasVisionPlugin ? 'partial' : 'missing',
       detail: vision.hasVisionPlugin
-        ? `vision 插件已装 (${vision.pluginLocation}), 当前模型: ${vision.model || '未知'}`
-        : '未检测到 vision 插件',
+        ? `视觉识别插件已装 (${vision.pluginLocation}), 当前模型: ${vision.model || '未知'}`
+        : '未检测到视觉识别插件',
       howTo: vision.hasVisionPlugin
-        ? '若模型不支持视觉, 需在 settings.yaml 配置多模态模型 (如 visionpower)'
-        : '安装 vision 插件 (如 visionpower) 并配置多模态模型',
+        ? '若模型不支持视觉识别, 需在 DSH 配置中切换为支持视觉识别的模型'
+        : '需配置视觉识别插件, 并在 DSH 中配置支持视觉识别的模型',
       verify: '在飞书发图片, 看是否识别内容',
     },
     {
