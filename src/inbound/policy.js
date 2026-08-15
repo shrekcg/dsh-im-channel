@@ -43,18 +43,18 @@ function evaluatePolicy(config, msg) {
     if (config.dmPolicy === 'closed') {
       return { allowed: false, reason: 'dm_disabled' };
     }
-    if (config.dmPolicy === 'allowlist' && config.dmAllowFrom.length && !config.dmAllowFrom.includes(msg.senderId)) {
+    if (config.dmPolicy === 'allowlist' && !config.dmAllowFrom.includes(msg.senderId)) {
       return { allowed: false, reason: 'sender_not_allowed' };
     }
     return { allowed: true };
   }
 
   // 群聊
-  // 1. 群白名单
+  // 1. 群白名单 (allowlist 空列表 = fail-closed, 拒绝所有; 避免漏配全开放)
   if (config.groupPolicy === 'closed') {
     return { allowed: false, reason: 'group_not_allowed' };
   }
-  if (config.groupPolicy === 'allowlist' && config.groupAllowFrom.length && !config.groupAllowFrom.includes(msg.senderId)) {
+  if (config.groupPolicy === 'allowlist' && !config.groupAllowFrom.includes(msg.senderId)) {
     return { allowed: false, reason: 'sender_not_allowed' };
   }
 

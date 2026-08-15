@@ -73,12 +73,28 @@ function log(...args) {
   console.log(`[${ts}]`, ...args);
 }
 
-// 已处理消息去重
-const processedMessageIds = new Set();
+// 已处理消息去重 (带 TTL, 防止无界增长内存泄漏)
+const processedMessageIds = new Map(); // messageId -> timestamp
+const PROCESSED_TTL_MS = 24 * 60 * 60 * 1000; // 24h 后自动清理
+
+function isProcessed(messageId) {
+  return processedMessageIds.has(messageId);
+}
+
+function markProcessed(messageId) {
+  processedMessageIds.set(messageId, Date.now());
+  // 定期清理过期条目 (防泄漏)
+  if (processedMessageIds.size > 5000) {
+    const now = Date.now();
+    for (const [k, ts] of processedMessageIds) {
+      if (now - ts > PROCESSED_TTL_MS) processedMessageIds.delete(k);
+    }
+  }
+}
 
 async function processMessage(config, msg, accountId) {
-  if (processedMessageIds.has(msg.messageId)) return;
-  processedMessageIds.add(msg.messageId);
+  if (isProcessed(msg.messageId)) return;
+  markProcessed(msg.messageId);
 
   const t0 = Date.now(); // 处理起始时间 (用于耗时显示)
 

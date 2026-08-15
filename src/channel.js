@@ -69,17 +69,11 @@ async function streamReply(config, chatId, replyTo, fullText) {
       chatId,
       {
         markdown: async (c) => {
-          const chunks = [];
-          for (let i = 0; i < fullText.length; i += config.typingChunkSize) {
-            chunks.push(fullText.slice(i, i + config.typingChunkSize));
-          }
-          const total = chunks.length;
-          for (let i = 0; i < total; i++) {
-            c.append(chunks[i]);
-            const nearStart = i < 3;
-            const nearEnd = i >= total - 5;
-            if (!nearStart && !nearEnd && total > 60 && i % 3 !== 0) continue;
-            await new Promise((r) => setTimeout(r, config.typingChunkMs));
+          // SDK stream 内置双阈值节流器 (自动控制卡片更新节奏),
+          // 这里直接快速 append 全部块即可, 无需手动 sleep (避免每条回复凭空延迟)
+          const chunkSize = Math.max(config.typingChunkSize, 8);
+          for (let i = 0; i < fullText.length; i += chunkSize) {
+            c.append(fullText.slice(i, i + chunkSize));
           }
         },
       },

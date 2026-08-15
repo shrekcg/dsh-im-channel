@@ -14,6 +14,28 @@
 const path = require('path');
 const { spawn } = require('child_process');
 
+// per-session 互斥队列: 同一 session 的消息串行处理 (避免并发恢复损坏会话文件)
+// 不同 session 之间并行, 不互相阻塞
+const sessionQueues = new Map();
+
+/**
+ * 按 sessionId 串行化执行: 同一 session 的任务排队, 前一个完成才跑下一个
+ * @param {string} sessionId
+ * @param {Function} task async 任务
+ */
+async function withSessionLock(sessionId, task) {
+  const prev = sessionQueues.get(sessionId) || Promise.resolve();
+  const next = prev.then(task, task); // 前一个无论成败都继续
+  sessionQueues.set(sessionId, next.catch(() => {}));
+  try {
+    return await next;
+  } finally {
+    if (sessionQueues.get(sessionId) === next) {
+      sessionQueues.delete(sessionId);
+    }
+  }
+}
+
 /** 派生 session id: 按"对话上下文"区分 (私聊/群聊主线/话题), 可带账号前缀 */
 function deriveSessionId(msg, accountId) {
   const prefix = accountId && accountId !== 'default' ? `acc-${accountId.replace(/[^a-zA-Z0-9-]/g, '-')}-` : '';
@@ -64,6 +86,11 @@ function run(bin, args, opts = {}, log = () => {}) {
  */
 async function runSession(config, msg, prompt, log = () => {}, accountId) {
   const sessionId = deriveSessionId(msg, accountId);
+  // 同一 session 串行执行 (并发安全), 不同 session 并行
+  return withSessionLock(sessionId, () => doRunSession(config, sessionId, prompt, log));
+}
+
+async function doRunSession(config, sessionId, prompt, log) {
   const patchPath = path.join(config.dshHome, 'profiles', 'headless', 'node_modules', 'dsh-lark-session', 'cordis.patch.yml');
 
   log(`[session] 调用持久会话 ${sessionId} ...`);
@@ -102,4 +129,4 @@ async function runSession(config, msg, prompt, log = () => {}, accountId) {
   return { reply, sessionId, seq, tools, thinking };
 }
 
-module.exports = { deriveSessionId, runSession, run };
+module.exports = { deriveSessionId, runSession, run, withSessionLock };

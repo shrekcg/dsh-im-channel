@@ -7,6 +7,8 @@ const os = require('os');
 const path = require('path');
 
 const { deriveSessionId } = require('../src/session');
+const { evaluatePolicy } = require('../src/inbound/policy');
+function baseMsg(over) { return { chatType: 'group', mentionedBot: false, mentionAll: false, senderId: 'ou_user', chatId: 'oc_group', ...over }; }
 
 // ---------- 会话派生 (多账号/多场景完整覆盖) ----------
 test('session: 多账号前缀隔离', () => {
@@ -78,4 +80,50 @@ test('reply: 耗时 footer 格式', () => {
   assert.strictEqual(text, '29.0s');
   const ms = 500;
   assert.strictEqual(ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`, '500ms');
+});
+
+// ---------- per-session 并发锁 ----------
+const { withSessionLock } = require('../src/session');
+
+test('session lock: 同一 session 串行, 不同 session 并行', async () => {
+  const order = [];
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // 同一 session: 必须串行 (第二个等第一个完成)
+  const t1 = withSessionLock('s1', async () => { order.push('s1-start'); await sleep(50); order.push('s1-end'); return 'a'; });
+  const t2 = withSessionLock('s1', async () => { order.push('s2-start'); order.push('s2-end'); return 'b'; });
+  const [r1, r2] = await Promise.all([t1, t2]);
+  assert.strictEqual(r1, 'a');
+  assert.strictEqual(r2, 'b');
+  // s2 必须在 s1-end 之后执行 (串行)
+  assert.ok(order.indexOf('s2-start') > order.indexOf('s1-end'), `串行失败: ${order.join(',')}`);
+});
+
+test('session lock: 不同 session 并行不互相阻塞', async () => {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let done = 0;
+  const t1 = withSessionLock('sa', async () => { await sleep(80); done++; });
+  const t2 = withSessionLock('sb', async () => { done++; });
+  await Promise.all([t1, t2]);
+  assert.strictEqual(done, 2);
+});
+
+test('session lock: 前一个失败不影响后一个', async () => {
+  await withSessionLock('sx', async () => { throw new Error('boom'); }).catch(() => {});
+  const r = await withSessionLock('sx', async () => 'ok');
+  assert.strictEqual(r, 'ok');
+});
+
+// ---------- allowlist fail-closed 修复 ----------
+test('policy: allowlist 空列表 = fail-closed (拒绝所有)', () => {
+  const config = { requireMention: false, respondToMentionAll: true, groupPolicy: 'allowlist', groupAllowFrom: [], dmPolicy: 'open', dmAllowFrom: [], groups: {}, allowBots: false };
+  const v = evaluatePolicy(config, baseMsg({ senderId: 'ou_anyone' }));
+  assert.strictEqual(v.allowed, false);
+  assert.strictEqual(v.reason, 'sender_not_allowed');
+});
+
+test('policy: allowlist 非空时白名单成员放行', () => {
+  const config = { requireMention: false, respondToMentionAll: true, groupPolicy: 'allowlist', groupAllowFrom: ['ou_owner'], dmPolicy: 'open', dmAllowFrom: [], groups: {}, allowBots: false };
+  assert.strictEqual(evaluatePolicy(config, baseMsg({ senderId: 'ou_owner' })).allowed, true);
+  assert.strictEqual(evaluatePolicy(config, baseMsg({ senderId: 'ou_other' })).allowed, false);
 });
