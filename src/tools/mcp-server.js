@@ -93,12 +93,12 @@ function runLark(args, opts = {}) {
 
 async function larkJson(args, identity = 'bot') {
   // 身份策略: 工具定义的身份 (user=用户数据操作, bot=消息/群操作)
-  // 安全: 写操作默认降级为 bot, 仅 ALLOW_USER_WRITES=true 时允许 user 写
-  // 读操作保持工具定义身份 (读取用户数据需要 user)
-  const isWrite = /create|update|delete|send|add|remove|move|complete|reopen|upload/i.test(args.join(' '));
+  // 安全: 仅"冒充用户对外发声"类操作 (发消息/发邮件) 强制 bot,
+  //      防止 agent 冒用户名义对外发送; 文档/日历/任务创建等保持 user (需用户身份才能操作)
+  const impersonate = /^im\s+\+messages-send|^mail\s+\+send/.test(args.join(' '));
   let safeIdentity = identity;
-  if (isWrite && identity === 'user' && process.env.ALLOW_USER_WRITES !== 'true') {
-    safeIdentity = 'bot'; // 写操作默认用 bot, 防止冒充用户写入
+  if (impersonate && identity === 'user' && process.env.ALLOW_USER_WRITES !== 'true') {
+    safeIdentity = 'bot';
   }
   const res = await runLark([...args, '--as', safeIdentity, '--json']);
   // 退出码非 0 = 失败 (即使有 JSON 输出)
