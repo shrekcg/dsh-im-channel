@@ -240,31 +240,23 @@ async function processMessage(config, msg, accountId) {
           await ch.connect();
           let seen = '';
           const msgId = await channel.streamReplyLive(config, msg.chatId, msg.messageId, async () => {
-            // coalesce: 攒够字符或空闲才返回 (配合 SDK 节流器, 流式更顺畅)
-            let acc = '';
-            const COALESCE_CHARS = 160;
-            const COALESCE_IDLE_MS = 400;
-            while (true) {
-              if (deltaQueue.length > 0) {
-                acc += deltaQueue.shift();
-                if (acc.length >= COALESCE_CHARS) break;
-                continue;
-              }
-              if (deltaDone) break;
-              // 无数据: 等待增量或空闲超时
-              await new Promise((r) => setTimeout(r, 60));
-              if (deltaQueue.length === 0) {
-                // 空闲检测: 若已有积累且等待超过 idle, 先推送已有内容
-                if (acc.length > 0) {
-                  // 简单空闲检测: 用一次额外等待判断是否还有后续
-                  await new Promise((r) => setTimeout(r, Math.min(COALESCE_IDLE_MS, 150)));
-                  if (deltaQueue.length === 0) break;
-                }
-              }
+            // 小块多次返回 (8字符/次), 让 SDK 的 70ms 原生打字机真正工作
+            // 不 coalesce 成大块 (那会一次显示全部, 失去流式效果)
+            const CHUNK = 8;
+            while (deltaQueue.length === 0 && !deltaDone) {
+              await new Promise((r) => setTimeout(r, 30));
             }
-            if (acc) {
-              seen += acc;
-              return acc;
+            if (deltaQueue.length > 0) {
+              const chunk = deltaQueue.shift();
+              // 若块较大 (runner 256字符), 拆成小段逐步返回
+              if (chunk.length > CHUNK) {
+                deltaQueue.unshift(chunk.slice(CHUNK)); // 剩余部分放回队列
+                const piece = chunk.slice(0, CHUNK);
+                seen += piece;
+                return piece;
+              }
+              seen += chunk;
+              return chunk;
             }
             return null; // 结束
           });
