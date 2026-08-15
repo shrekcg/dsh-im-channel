@@ -73,6 +73,29 @@ function log(...args) {
   console.log(`[${ts}]`, ...args);
 }
 
+// chatType 反查缓存 (cardAction/comment 等无 chatType 的场景)
+const chatTypeCache = new Map(); // chatId -> {chatType, ts}
+const CHAT_TYPE_TTL = 30 * 60 * 1000;
+
+/** 反查会话类型 (p2p|group), 带缓存; 失败回退 p2p */
+async function resolveChatType(config, chatId) {
+  if (!chatId) return 'p2p';
+  const cached = chatTypeCache.get(chatId);
+  if (cached && Date.now() - cached.ts < CHAT_TYPE_TTL) return cached.chatType;
+  try {
+    const res = await session.run('/opt/homebrew/bin/lark-cli', ['im', '+chat-list', '--types', 'p2p,group', '--page-size', '50', '--as', 'bot'],
+      { env: { ...process.env, LARKSUITE_CLI_NO_UPDATE_NOTIFIER: '1', LARKSUITE_CLI_NO_SKILLS_NOTIFIER: '1' } }, log);
+    const d = JSON.parse(res.out || '{}');
+    const chats = d.data?.chats || d.data?.items || [];
+    const found = chats.find((c) => c.chat_id === chatId || c.id === chatId);
+    const chatType = found ? (found.chat_mode === 'p2p' ? 'p2p' : 'group') : 'p2p';
+    chatTypeCache.set(chatId, { chatType, ts: Date.now() });
+    return chatType;
+  } catch (e) {
+    return 'p2p';
+  }
+}
+
 // 已处理消息去重 (带 TTL, 防止无界增长内存泄漏)
 const processedMessageIds = new Map(); // messageId -> timestamp
 const PROCESSED_TTL_MS = 24 * 60 * 60 * 1000; // 24h 后自动清理
@@ -290,12 +313,13 @@ async function main() {
         const question = evt.action?.value?.question;
         if (option) {
           log(`[ask-user] 用户选择: ${option} (问题: ${question || '-'})`);
-          // 把用户选择作为消息送进对应会话
+          // 反查会话类型 (卡片可能在群里被点击, 不硬编码 p2p)
+          const chatType = await resolveChatType(accConfig, evt.chatId);
           const prompt = `【用户对提问的回复】问题: ${question || ''}\n用户选择: ${option}`;
           const { reply } = await session.runSession(accConfig, {
             senderId: evt.operator?.openId || 'anonymous',
             chatId: evt.chatId,
-            chatType: 'p2p',
+            chatType,
             content: '',
           }, prompt, log, accountId);
           if (reply && reply !== '（无回复）' && reply !== '（处理出错）') {
