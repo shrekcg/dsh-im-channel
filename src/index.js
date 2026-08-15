@@ -273,9 +273,17 @@ async function processMessage(config, msg, accountId) {
           return { msgId: null, seen: '' };
         }
       })();
-      const result = await runPromise;
-      deltaDone = true; // 通知消费结束
-      const consumed = await consumePromise;
+      let consumed = { msgId: null, seen: '' };
+      let result;
+      try {
+        result = await runPromise;
+      } catch (e) {
+        log('[stream] DSH 处理失败:', e.message);
+        result = { reply: '', sessionId, tools: [], thinking: '' };
+      } finally {
+        deltaDone = true; // 通知消费结束 (无论成功失败)
+        consumed = await consumePromise.catch(() => ({ msgId: null, seen: '' }));
+      }
       streamOut = { ...result, streamMsgId: consumed.msgId, streamedText: consumed.seen };
     }
     const { reply, sessionId, tools, thinking } = streamOut;
