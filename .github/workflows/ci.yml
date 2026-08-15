@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        run: npm test
+
+      - name: Syntax check all source
+        run: |
+          for f in $(find src scripts -name '*.js'); do
+            node --check "$f"
+          done
+
+      - name: Verify MCP server starts
+        run: |
+          node src/tools/mcp-server.js &
+          MCP_PID=$!
+          sleep 3
+          # MCP server 应在 stderr 输出 ready 标记
+          if ! kill -0 $MCP_PID 2>/dev/null; then
+            echo "❌ MCP server 启动失败"
+            exit 1
+          fi
+          kill $MCP_PID
+          echo "✅ MCP server 启动正常"

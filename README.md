@@ -1,5 +1,11 @@
 # DSH ↔ Feishu/Lark Bridge
 
+<p align="center">
+  <a href="https://github.com/shrekcg/dsh-lark-bridge/actions"><img src="https://github.com/shrekcg/dsh-lark-bridge/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
+</p>
+
+
 将 [DeepSeek Harness](https://github.com/deepseek-ai) 接入飞书/Lark 的完整双向通道，提供持久会话、话题隔离、群聊、流式卡片、多媒体、飞书对象工具等能力——对齐 OpenClaw 飞书官方插件的体验。
 
 > **English**: See [README.en.md](docs/README.en.md) (coming soon)
