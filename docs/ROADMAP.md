@@ -105,3 +105,12 @@
 - OpenClaw 飞书官方插件源码: github.com/larksuite/openclaw-lark (v2026.7.9)
 - 官方使用指南: bytedance.larkoffice.com/docx/MFK7dDFLFoVlOGxWCv5cTXKmnMh
 - 飞书适配设计参考: docs/feishu-adapter-design
+
+## 最新更新 (2026-08-15 晚)
+
+- ✅ 功能配置检查清单 (npm run features + 飞书对话查询)
+- ✅ 图片视觉理解检测+提示 (visionpower 插件检测, 未配时提示无法识图)
+- ✅ CI (GitHub Actions: 测试+语法+MCP冒烟)
+- ✅ 服务检测修复 (features/doctor/install, agent 实测发现)
+- 🟨 真流式输出 (token级): 评估为值得做, 独立工程规划中
+- ⏸️ 企业级权限治理: 评估为当前阶段不做 (单机/小团队场景已有白名单+按群策略够用)
