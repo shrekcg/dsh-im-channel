@@ -10,12 +10,21 @@
 		<string>/Users/Wcg/.dsh</string>
 		<key>HOME</key>
 		<string>/Users/Wcg</string>
+		<key>LARKSUITE_CLI_NO_SKILLS_NOTIFIER</key>
+		<string>1</string>
+		<key>LARKSUITE_CLI_NO_UPDATE_NOTIFIER</key>
+		<string>1</string>
 		<key>LARK_APP_ID</key>
 		<string>cli_aaf452591cb8dcff</string>
 		<key>LARK_APP_SECRET</key>
+		<!-- ⚠️ 模板: 安装时由 install.js 从环境变量注入, 请勿提交真实密钥 -->
 		<string>__LARK_APP_SECRET__</string>
 		<key>PATH</key>
 		<string>/Users/Wcg/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+		<key>REACTION_NOTIFICATIONS</key>
+		<string>all</string>
+		<key>REQUIRE_MENTION</key>
+		<string>false</string>
 	</dict>
 	<key>KeepAlive</key>
 	<true/>

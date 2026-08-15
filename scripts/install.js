@@ -64,8 +64,27 @@ function install() {
   if (!fs.existsSync(PLIST_SRC)) {
     console.warn('   ⚠️ 未找到 plist 模板, 跳过 launchd 注册');
   } else {
+    // 从环境变量或 config.json 读取 appSecret (模板注入, 不提交明文)
+    const cfgPath = path.join(BRIDGE_DIR, 'config.json');
+    let appSecret = process.env.LARK_APP_SECRET || '';
+    try {
+      if (!appSecret && fs.existsSync(cfgPath)) {
+        const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+        appSecret = cfg.appSecret || '';
+      }
+    } catch (e) {}
+
     let plist = fs.readFileSync(PLIST_SRC, 'utf8');
-    plist = plist.replace(/<string>\/Users\/Wcg\/Desktop\/AI ~[^<]*dsh-lark-bridge[^<]*<\/string>/g, `<string>${BRIDGE_DIR.replace(/&/g, '&amp;')}</string>`);
+    // 替换所有旧路径 (修复: 原正则含字面~永不匹配)
+    const escapedDir = BRIDGE_DIR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    plist = plist.replace(/<string>\/Users[^<]*dsh-lark-bridge[^<]*<\/string>/g,
+      `<string>${BRIDGE_DIR.replace(/&/g, '&amp;')}</string>`);
+    // 注入 appSecret (模板占位符 → 实际值)
+    if (appSecret) {
+      plist = plist.replace('__LARK_APP_SECRET__', appSecret);
+    } else {
+      console.warn('   ⚠️ 未找到 LARK_APP_SECRET (env 或 config.json), plist 将保留占位符');
+    }
     fs.mkdirSync(path.dirname(PLIST_DEST), { recursive: true });
     fs.writeFileSync(PLIST_DEST, plist);
     run('launchctl', ['bootout', `gui/${process.getuid()}`, 'com.dsh.lark-bridge']);
