@@ -80,6 +80,8 @@ async function processMessage(config, msg, accountId) {
   if (processedMessageIds.has(msg.messageId)) return;
   processedMessageIds.add(msg.messageId);
 
+  const t0 = Date.now(); // 处理起始时间 (用于耗时显示)
+
   // 记录消息上下文 (供 reaction 事件定位会话)
   rememberMessageContext(msg);
 
@@ -160,9 +162,13 @@ async function processMessage(config, msg, accountId) {
 
   const { reply, sessionId, tools, thinking } = await session.runSession(config, msg, prompt, log, accountId);
 
-  // 思考过程: 记录日志 (可选展示在回复前)
-  if (thinking) {
+  // 思考过程: 记录日志 + 以可折叠块展示在回复前
+  let thinkingText = '';
+  if (thinking && thinking.trim()) {
     log('[thinking]', thinking.slice(0, 100));
+    // 折叠块 (飞书 markdown 支持 details 折叠): 先显示"思考过程", 点击展开
+    const shortThink = thinking.trim().length > 300 ? thinking.trim().slice(0, 300) + '…' : thinking.trim();
+    thinkingText = `<details><summary>💭 思考过程</summary>\n\n${shortThink}\n\n</details>\n\n`;
   }
 
   // 工具追踪: 若 agent 调用了工具, 生成追踪摘要 (作为回复的前置提示)
@@ -172,15 +178,20 @@ async function processMessage(config, msg, accountId) {
     log('[tools]', tools.map((t) => t.name).join(', '));
   }
 
+  // 耗时 footer (对齐官方 footer.elapsed)
+  const elapsedMs = Date.now() - t0;
+  const elapsedText = elapsedMs >= 1000 ? `${(elapsedMs / 1000).toFixed(1)}s` : `${elapsedMs}ms`;
+  const footerText = `\n\n---\n⚡ 处理耗时: ${elapsedText}${config.showModel ? ` · 🧠 ${config.showModel}` : ''}`;
+
   // 回复内容处理: 限制长度 + @ 渲染
   let finalReply = reply;
   if (finalReply.length > 1500) finalReply = finalReply.slice(0, 1500) + '…';
-  finalReply += toolTraceText;
+  finalReply = thinkingText + finalReply + toolTraceText + footerText;
   const { text: mentionText } = mention.convertMentions(finalReply);
 
   // 卡片流式回复
   const replyMsgId = await channel.streamReply(config, msg.chatId, msg.messageId, mentionText);
-  log('[reply] 回复完成 session=' + sessionId);
+  log(`[reply] 回复完成 session=${sessionId} elapsed=${elapsedText}`);
 
   // 记录 bot 回复的上下文 (供 reaction 事件定位会话)
   if (replyMsgId) {

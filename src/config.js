@@ -26,6 +26,7 @@ const DEFAULTS = {
   mediaMaxMb: 20,                   // 媒体文件大小上限
   mediaDir: '',                     // 媒体下载目录 (默认项目内 media/)
   logLevel: 'info',
+  showModel: '',                    // 回复 footer 是否显示模型名 (如 'deepseek-v4-flash')
   reactionNotifications: 'off',     // off | own | all (表情反馈)
   groupPolicy: 'open',              // open | allowlist | closed
   groupAllowFrom: [],               // 群聊白名单 (open_id 列表)

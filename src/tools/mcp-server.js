@@ -138,7 +138,11 @@ server.tool(
   async ({ title, content, as }) => {
     const r = await larkJson(['docs', '+create', '--title', title, '--content', content], as || 'user');
     if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
-    return { content: [{ type: 'text', text: `已创建: ${r.data.url || r.data.document_id || ''}` }] };
+    const doc = r.data.document || r.data;
+    const docId = doc.document_id || doc.id || (doc.url || '').split('/').pop() || '';
+    // 用标准域名拼接 URL (lark-cli 返回的 my.feishu.cn 可能导致客户端"离线模式")
+    const url = docId ? `https://feishu.cn/docx/${docId}` : (doc.url || '');
+    return { content: [{ type: 'text', text: `已创建文档: ${url}` }] };
   }
 );
 
