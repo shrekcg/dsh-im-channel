@@ -240,22 +240,24 @@ async function processMessage(config, msg, accountId) {
           await ch.connect();
           let seen = '';
           const msgId = await channel.streamReplyLive(config, msg.chatId, msg.messageId, async () => {
-            // 小块多次返回 (8字符/次), 让 SDK 的 70ms 原生打字机真正工作
-            // 不 coalesce 成大块 (那会一次显示全部, 失去流式效果)
-            const CHUNK = 8;
+            // 小块多次返回 (6字符/次) + 轻量 pacing, 让打字机效果可见
+            // (SDK 默认 100ms/50字符 节流在快速生成时几乎瞬时, 加 pacing 让流式可感知)
+            const CHUNK = 6;
+            const PACE_MS = 25;
             while (deltaQueue.length === 0 && !deltaDone) {
               await new Promise((r) => setTimeout(r, 30));
             }
             if (deltaQueue.length > 0) {
               const chunk = deltaQueue.shift();
-              // 若块较大 (runner 256字符), 拆成小段逐步返回
               if (chunk.length > CHUNK) {
-                deltaQueue.unshift(chunk.slice(CHUNK)); // 剩余部分放回队列
+                deltaQueue.unshift(chunk.slice(CHUNK));
                 const piece = chunk.slice(0, CHUNK);
                 seen += piece;
+                await new Promise((r) => setTimeout(r, PACE_MS)); // 显示节奏
                 return piece;
               }
               seen += chunk;
+              await new Promise((r) => setTimeout(r, PACE_MS));
               return chunk;
             }
             return null; // 结束
