@@ -41,6 +41,7 @@ const reaction = require('./inbound/reaction');
 const mergeForward = require('./inbound/merge-forward');
 const commentHandler = require('./inbound/comment');
 const mention = require('./outbound/mention');
+const { adaptiveStep } = require('./core/adaptive');
 
 const BRIDGE_DIR = __dirname.replace(/\/src$/, '');
 
@@ -241,17 +242,8 @@ async function processMessage(config, msg, accountId) {
           let seen = '';
           const msgId = await channel.streamReplyLive(config, msg.chatId, msg.messageId, async () => {
             // 自适应消费: 根据已累计长度动态决定每次步长
-            // 短内容(<60字): 小步 6字 (打字机明显)
-            // 中等(60-400字): 中步 16字
-            // 长内容(>400字): 大步 40字 (减少刷新频率, 防飞书限频/卡顿)
-            const adaptiveStep = () => {
-              if (seen.length < 60) return 6;
-              if (seen.length < 400) return 16;
-              return 40;
-            };
-            // 攒够一步才返回 (自适应), 无数据时等待
             let acc = '';
-            const step = adaptiveStep();
+            const step = adaptiveStep(seen.length);
             while (true) {
               if (deltaQueue.length > 0) {
                 acc += deltaQueue.shift();

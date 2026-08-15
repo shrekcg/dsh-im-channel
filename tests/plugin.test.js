@@ -127,3 +127,30 @@ test('policy: allowlist 非空时白名单成员放行', () => {
   assert.strictEqual(evaluatePolicy(config, baseMsg({ senderId: 'ou_owner' })).allowed, true);
   assert.strictEqual(evaluatePolicy(config, baseMsg({ senderId: 'ou_other' })).allowed, false);
 });
+
+// ---------- 自适应流式步长 ----------
+const { adaptiveStep } = require('../src/core/adaptive');
+
+test('adaptive step: 短内容小步 (打字机明显)', () => {
+  assert.strictEqual(adaptiveStep(0), 6);
+  assert.strictEqual(adaptiveStep(30), 6);
+  assert.strictEqual(adaptiveStep(59), 6);
+});
+
+test('adaptive step: 中等内容中步', () => {
+  assert.strictEqual(adaptiveStep(60), 16);
+  assert.strictEqual(adaptiveStep(200), 16);
+  assert.strictEqual(adaptiveStep(399), 16);
+});
+
+test('adaptive step: 长内容大步 (防限频)', () => {
+  assert.strictEqual(adaptiveStep(400), 40);
+  assert.strictEqual(adaptiveStep(5000), 40);
+});
+
+test('adaptive step: 边界值正确', () => {
+  assert.strictEqual(adaptiveStep(59), 6);
+  assert.strictEqual(adaptiveStep(60), 16);
+  assert.strictEqual(adaptiveStep(399), 16);
+  assert.strictEqual(adaptiveStep(400), 40);
+});
