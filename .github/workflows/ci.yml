@@ -29,15 +29,26 @@ jobs:
             node --check "$f"
           done
 
-      - name: Verify MCP server starts
+      - name: Verify MCP server registers tools
         run: |
-          node src/tools/mcp-server.js &
-          MCP_PID=$!
-          sleep 3
-          # MCP server 应在 stderr 输出 ready 标记
-          if ! kill -0 $MCP_PID 2>/dev/null; then
-            echo "❌ MCP server 启动失败"
-            exit 1
-          fi
-          kill $MCP_PID
-          echo "✅ MCP server 启动正常"
+          # 用 MCP client 实际连接 stdio server, 验证工具注册
+          # (进程存活检查不可靠: stdio server 在无 stdin 输入时会因 EOF 退出)
+          node --input-type=module -e "
+            import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+            import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+            const transport = new StdioClientTransport({ command: process.execPath, args: ['src/tools/mcp-server.js'] });
+            const client = new Client({ name: 'ci-check', version: '1.0.0' });
+            try {
+              await client.connect(transport);
+              const tools = await client.listTools();
+              if (!tools.tools || tools.tools.length < 30) {
+                console.error('❌ 工具数量异常:', tools.tools?.length);
+                process.exit(1);
+              }
+              console.log('✅ MCP server 正常, ' + tools.tools.length + ' 个工具已注册');
+              await client.close();
+            } catch (e) {
+              console.error('❌ MCP server 连接失败:', e.message);
+              process.exit(1);
+            }
+          "
