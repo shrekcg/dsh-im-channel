@@ -14,3 +14,4 @@ lark-events/
 # Test artifacts
 test-*.js
 *.png
+test-mcp-ci.sh
