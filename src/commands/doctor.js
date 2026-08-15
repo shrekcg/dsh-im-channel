@@ -126,11 +126,13 @@ function main() {
     // 用户身份
     const userStatus = run(larkCli, ['whoami']);
     let userOk = false;
+    let userName = '';
     try {
       const d = JSON.parse(userStatus.out);
       userOk = d.available === true;
+      userName = d.onBehalfOf?.userName || d.identity === 'user' ? (d.onBehalfOf?.userName || '') : '';
     } catch (e) {}
-    report('user 身份', userOk, userStatus.out.includes('Shrekwu') ? 'Shrekwu' : '', '运行 lark-cli auth login 重新授权');
+    report('user 身份', userOk, userName || '', '运行 lark-cli auth login 重新授权');
   }
   console.log();
 

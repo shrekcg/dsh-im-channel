@@ -83,7 +83,7 @@ async function resolveChatType(config, chatId) {
   const cached = chatTypeCache.get(chatId);
   if (cached && Date.now() - cached.ts < CHAT_TYPE_TTL) return cached.chatType;
   try {
-    const res = await session.run('/opt/homebrew/bin/lark-cli', ['im', '+chat-list', '--types', 'p2p,group', '--page-size', '50', '--as', 'bot'],
+    const res = await session.run(process.env.LARK_CLI || '/opt/homebrew/bin/lark-cli', ['im', '+chat-list', '--types', 'p2p,group', '--page-size', '50', '--as', 'bot'],
       { env: { ...process.env, LARKSUITE_CLI_NO_UPDATE_NOTIFIER: '1', LARKSUITE_CLI_NO_SKILLS_NOTIFIER: '1' } }, log);
     const d = JSON.parse(res.out || '{}');
     const chats = d.data?.chats || d.data?.items || [];
