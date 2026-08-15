@@ -122,15 +122,20 @@ async function processMessage(config, msg, accountId) {
   let content = String(msg.content || '').trim();
   const rawType = msg.rawContentType || '';
 
-  // 合并转发: 展开子消息内容
+  // 合并转发: 仅当 SDK 未展开 (占位符) 时才二次拉取, 避免覆盖已展开内容
   if (mergeForward.isMergeForward(msg)) {
-    try {
-      const ch = channel.getChannel(config);
-      const expanded = await mergeForward.expandMergeForward(ch, msg);
-      content = expanded;
-      log('[merge-forward] 已展开');
-    } catch (e) {
-      log('[merge-forward] 展开失败:', e.message);
+    const isPlaceholder = !content || content.includes('<forwarded_messages/>') || content.includes('Merged and Forwarded');
+    if (isPlaceholder) {
+      try {
+        const ch = channel.getChannel(config);
+        const expanded = await mergeForward.expandMergeForward(ch, msg);
+        if (expanded && !expanded.includes('(无法展开')) content = expanded;
+        log('[merge-forward] 已展开');
+      } catch (e) {
+        log('[merge-forward] 展开失败:', e.message);
+      }
+    } else {
+      log('[merge-forward] SDK 已展开, 跳过二次拉取');
     }
   }
 
@@ -167,6 +172,12 @@ async function processMessage(config, msg, accountId) {
   try {
     // 构造任务 → 持久会话
     const senderName = msg.senderName || msg.senderId || '用户';
+    // 限制消息内容长度 (防 argv E2BIG: macOS 单参数约 256KB, 保守用 50KB)
+    const MAX_CONTENT = 50 * 1024;
+    let msgContent = content + (mediaText ? '\n\n' + mediaText : '');
+    if (msgContent.length > MAX_CONTENT) {
+      msgContent = msgContent.slice(0, MAX_CONTENT) + '\n…(内容过长已截断)';
+    }
     const prompt = [
       '这是飞书用户 {{sender_name}} 发给你的消息（持久会话，请结合之前的对话记忆回答）：',
       '',
@@ -174,7 +185,7 @@ async function processMessage(config, msg, accountId) {
       '{{content}}',
     ].join('\n')
       .replace('{{sender_name}}', senderName)
-      .replace('{{content}}', content + (mediaText ? '\n\n' + mediaText : ''));
+      .replace('{{content}}', msgContent);
 
     const { reply, sessionId, tools, thinking } = await session.runSession(config, msg, prompt, log, accountId);
 
@@ -335,10 +346,15 @@ async function main() {
     ch.on('reconnecting', () => log(`[account:${accountId}] reconnecting...`));
     ch.on('reconnected', () => log(`[account:${accountId}] reconnected`));
 
-    await ch.connect();
-    log(`[account:${accountId}] connected, bot=`, JSON.stringify(ch.botIdentity));
+    try {
+      await ch.connect();
+      log(`[account:${accountId}] connected, bot=`, JSON.stringify(ch.botIdentity));
+    } catch (e) {
+      // 单个账号连接失败不影响其他账号
+      log(`[account:${accountId}] 连接失败:`, e.message, '(继续其他账号)');
+    }
   }
-  log('所有账号已连接, 等待飞书消息...');
+  log('所有账号处理完成, 等待飞书消息...');
 }
 
 process.on('SIGTERM', () => { log('SIGTERM, 退出'); process.exit(0); });
