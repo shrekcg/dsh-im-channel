@@ -95,7 +95,8 @@ function install() {
   // 4. 验证
   console.log('[4/4] 验证安装...');
   const lc = run('/bin/launchctl', ['list']);
-  const running = lc.out.includes('com.dsh.lark-bridge');
+  const pg = run('/bin/pgrep', ['-f', 'dsh-lark-bridge/src/index.js']);
+  const running = (lc.code === 0 && /com\.dsh\.lark-bridge/.test(lc.out)) || pg.code === 0;
   console.log(running ? '   ✅ 服务运行中' : '   ⚠️ 服务未运行 (运行 npm run doctor 排查)');
 
   console.log('\n✅ 安装完成! 运行 npm run doctor 验证, 或 npm run setup 完成初始化配置.');
@@ -127,7 +128,9 @@ function status() {
   const plistOk = fs.existsSync(PLIST_DEST);
   console.log(`launchd plist: ${plistOk ? '✅ 已注册' : '❌ 未注册'}`);
   const lc = run('/bin/launchctl', ['list']);
-  console.log(`launchd 运行: ${lc.out.includes('com.dsh.lark-bridge') ? '✅ 运行中' : '❌ 未运行'}`);
+  const pg = run('/bin/pgrep', ['-f', 'dsh-lark-bridge/src/index.js']);
+  const running = (lc.code === 0 && /com\.dsh\.lark-bridge/.test(lc.out)) || pg.code === 0;
+  console.log(`launchd 运行: ${running ? '✅ 运行中' : '❌ 未运行'}`);
   const mcpOk = fs.existsSync(path.join(BRIDGE_DIR, 'node_modules', '@modelcontextprotocol', 'sdk'));
   console.log(`MCP SDK: ${mcpOk ? '✅ 已安装' : '❌ 缺失 (npm install)'}`);
 }

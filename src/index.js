@@ -215,6 +215,8 @@ async function processMessage(config, msg, accountId) {
     const prompt = [
       '这是飞书用户 {{sender_name}} 发给你的消息（持久会话，请结合之前的对话记忆回答）：',
       '',
+      '【功能清单指令】当用户问"功能清单/配置清单/哪些功能配了"等时，执行: node src/commands/features.js 并解读结果，告诉用户哪些功能已配置、哪些未配置、未配置如何操作。',
+      '',
       '【消息内容】',
       '{{content}}',
     ].join('\n')

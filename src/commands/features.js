@@ -105,9 +105,12 @@ function checkMultiAccount() {
 }
 
 function checkService() {
+  // 多重检测: launchctl list (当前会话) + pgrep 进程兜底
   const lc = run('/bin/launchctl', ['list']);
-  const running = lc.out.includes('com.dsh.lark-bridge');
-  return { running };
+  const inList = lc.code === 0 && /com\.dsh\.lark-bridge/.test(lc.out);
+  const pg = run('/bin/pgrep', ['-f', 'dsh-lark-bridge/src/index.js']);
+  const procRunning = pg.code === 0;
+  return { running: inList || procRunning };
 }
 
 // ---------- 主入口 ----------

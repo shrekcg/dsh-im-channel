@@ -142,8 +142,10 @@ function main() {
   const launchdOk = fs.existsSync(plist);
   report('launchd plist', launchdOk, plist, '重新加载服务');
   if (launchdOk) {
+    // 服务运行检测: launchctl list + pgrep 双保险 (print 单服务语法不可靠)
     const lc = run('/bin/launchctl', ['list']);
-    const running = lc.out.includes('com.dsh.lark-bridge');
+    const pg = run('/bin/pgrep', ['-f', 'dsh-lark-bridge/src/index.js']);
+    const running = (lc.code === 0 && /com\.dsh\.lark-bridge/.test(lc.out)) || pg.code === 0;
     report('launchd 服务运行', running, '', 'launchctl bootstrap gui/$(id -u) ' + plist);
     if (FIX && !running) {
       console.log('      [fix] 启动服务...');
