@@ -21,7 +21,7 @@ A complete bidirectional channel connecting [DeepSeek Harness](https://github.co
 - **Reaction feedback**: 👍/❤️ reactions fed to the agent (requires event subscription)
 
 ### Feishu Object Tools (MCP)
-**31 tools** exposed via Model Context Protocol, callable as `mcp__feishu__*`:
+**40 tools** exposed via Model Context Protocol, callable as `mcp__feishu__*`:
 
 | Category | Tools |
 |---|---|
@@ -29,8 +29,8 @@ A complete bidirectional channel connecting [DeepSeek Harness](https://github.co
 | Docs | `read_document` `create_document` `update_document` `doc_insert_media` `doc_list_comments` |
 | Calendar | `calendar_agenda` `create_calendar_event` `calendar_freebusy` |
 | Tasks | `get_my_tasks` `create_task` `task_create_subtask` `task_get_detail` `task_related` |
-| Base/Sheets | `base_read_records` `sheets_read` |
-| Wiki | `wiki_search` `wiki_list_spaces` |
+| Base/Sheets | `base_read_records` `base_create_field` `base_create_view` `sheets_read` |
+| Wiki | `wiki_search` `wiki_list_spaces` `wiki_create_node` |
 | Mail | `mail_list` `mail_send` |
 | Drive | `drive_search` `drive_list_folder` |
 | Minutes | `minutes_search` |

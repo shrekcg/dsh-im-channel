@@ -48,7 +48,7 @@
 
 ### ✅ 最新补充 (本轮)
 
-- MCP 工具扩展至 36 个 (新增 task_add_comment/calendar_search_events/base_create_table/base_create_record/ask_user_question)
+- MCP 工具扩展至 40 个 (新增 base_create_field/base_create_view/calendar_add_attendee/wiki_create_node 等)
 - 全部 36 个工具命令系统性验证通过 (修复 mail +send / wiki +space-list / base +data-query / drive files list / drive file.comments list / calendar +create / approval tasks query / wiki +node-list 等命令)
 - ask_user_question 交互提问卡片: 发选项卡片 + cardAction 回调注入会话 (代码完成, 需订阅 card.action.trigger)
 

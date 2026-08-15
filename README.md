@@ -21,7 +21,7 @@
 - **表情反馈感知**：用户 👍/❤️ 等表情反馈给 agent（需后台订阅事件）
 
 ### 飞书对象工具（MCP）
-通过 Model Context Protocol 向 DSH 暴露 **31 个飞书工具**，agent 以 `mcp__feishu__*` 原生调用：
+通过 Model Context Protocol 向 DSH 暴露 **40 个飞书工具**，agent 以 `mcp__feishu__*` 原生调用：
 
 | 类别 | 工具 |
 |---|---|
@@ -41,7 +41,9 @@
 | 任务扩展 | `task_create_subtask` `task_get_detail` `task_related` |
 | 日历扩展 | `calendar_freebusy` |
 | 消息扩展 | `search_messages` `read_thread_messages` |
-| 知识库扩展 | `wiki_list_spaces` |
+| 知识库扩展 | `wiki_list_spaces` `wiki_create_node` |
+| Base 扩展 | `base_create_field` `base_create_view` |
+| 日历参会人 | `calendar_add_attendee` |
 | 通讯录 | `get_user_info` |
 
 ### 平台能力

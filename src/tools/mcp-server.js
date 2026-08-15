@@ -706,6 +706,73 @@ server.tool(
   }
 );
 
+// ---------- 补充工具 3 ----------
+
+server.tool(
+  'base_create_field',
+  '在飞书多维表格中创建字段',
+  {
+    app_token: z.string().describe('多维表格 app_token (bascn 开头)'),
+    table_id: z.string().describe('数据表 table_id (tbl 开头)'),
+    field_name: z.string().describe('字段名称'),
+    field_type: z.string().optional().describe('字段类型 (text/number/select/date 等)'),
+    as: z.enum(['bot', 'user']).optional(),
+  },
+  async ({ app_token, table_id, field_name, field_type, as }) => {
+    const field = JSON.stringify({ field_name, type: field_type || 'text' });
+    const r = await larkJson(['base', '+field-create', '--base-token', app_token, '--table-id', table_id, '--json', field], as || 'user');
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    return { content: [{ type: 'text', text: `已创建字段: ${field_name}` }] };
+  }
+);
+
+server.tool(
+  'base_create_view',
+  '在飞书多维表格中创建视图',
+  {
+    app_token: z.string().describe('多维表格 app_token (bascn 开头)'),
+    table_id: z.string().describe('数据表 table_id (tbl 开头)'),
+    view_name: z.string().describe('视图名称'),
+    as: z.enum(['bot', 'user']).optional(),
+  },
+  async ({ app_token, table_id, view_name, as }) => {
+    const r = await larkJson(['base', '+view-create', '--base-token', app_token, '--table-id', table_id, '--name', view_name], as || 'user');
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    return { content: [{ type: 'text', text: `已创建视图: ${view_name}` }] };
+  }
+);
+
+server.tool(
+  'calendar_add_attendee',
+  '向飞书日程添加参会人',
+  {
+    event_id: z.string().describe('日程事件 ID'),
+    attendee_ids: z.string().describe('参会人 open_id, 逗号分隔'),
+    as: z.enum(['bot', 'user']).optional(),
+  },
+  async ({ event_id, attendee_ids, as }) => {
+    const r = await larkJson(['calendar', '+update', '--event-id', event_id, '--add-attendee-ids', attendee_ids], as || 'user');
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    return { content: [{ type: 'text', text: '已添加参会人' }] };
+  }
+);
+
+server.tool(
+  'wiki_create_node',
+  '在飞书知识库创建节点',
+  {
+    space_id: z.string().describe('知识库空间 ID'),
+    title: z.string().describe('节点标题'),
+    obj_type: z.string().optional().describe('对象类型 (doc/sheet/bitable 等, 默认 doc)'),
+    as: z.enum(['bot', 'user']).optional(),
+  },
+  async ({ space_id, title, obj_type, as }) => {
+    const r = await larkJson(['wiki', '+node-create', '--space-id', space_id, '--title', title, '--obj-type', obj_type || 'doc'], as || 'user');
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    return { content: [{ type: 'text', text: `已创建节点: ${title}` }] };
+  }
+);
+
 // ---------- 启动 ----------
 async function main() {
   const transport = new StdioServerTransport();
