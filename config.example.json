@@ -1,0 +1,24 @@
+{
+  "_comment": "DSH-Lark Bridge 多账号配置示例。复制为 config.json 使用。顶层字段为 default 账号（或由环境变量提供），accounts 下为附加账号。每个账号可独立配置策略，对应不同 agent（session 自动按账号隔离）。",
+  "accounts": {
+    "work_bot": {
+      "appId": "cli_你的第二个应用ID",
+      "appSecret": "你的第二个应用密钥",
+      "name": "工作机器人",
+      "requireMention": true,
+      "groupPolicy": "allowlist",
+      "groupAllowFrom": ["ou_你的openid"]
+    },
+    "personal_bot": {
+      "appId": "cli_第三个应用ID",
+      "appSecret": "第三个应用密钥",
+      "name": "个人机器人",
+      "requireMention": false
+    }
+  },
+  "requireMention": false,
+  "groupPolicy": "open",
+  "reactionNotifications": "all",
+  "typingChunkMs": 250,
+  "typingChunkSize": 8
+}

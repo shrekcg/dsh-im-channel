@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Runtime data
+config.json
+media/
+lark-events/
+*.log
+*.err.log
+
+# OS
+.DS_Store
+
+# Test artifacts
+test-*.js
