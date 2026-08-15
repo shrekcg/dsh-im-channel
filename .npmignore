@@ -1,0 +1,11 @@
+# npm 发布排除
+node_modules/
+tests/
+docs/
+*.log
+*.err.log
+config.json
+media/
+lark-events/
+test-*.js
+.DS_Store
