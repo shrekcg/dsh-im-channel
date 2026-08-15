@@ -238,13 +238,31 @@ async function processMessage(config, msg, accountId) {
           await ch.connect();
           let seen = '';
           const msgId = await channel.streamReplyLive(config, msg.chatId, msg.messageId, async () => {
-            while (deltaQueue.length === 0 && !deltaDone) {
-              await new Promise((r) => setTimeout(r, 50)); // 等待增量
+            // coalesce: 攒够字符或空闲才返回 (配合 SDK 节流器, 流式更顺畅)
+            let acc = '';
+            const COALESCE_CHARS = 160;
+            const COALESCE_IDLE_MS = 400;
+            while (true) {
+              if (deltaQueue.length > 0) {
+                acc += deltaQueue.shift();
+                if (acc.length >= COALESCE_CHARS) break;
+                continue;
+              }
+              if (deltaDone) break;
+              // 无数据: 等待增量或空闲超时
+              await new Promise((r) => setTimeout(r, 60));
+              if (deltaQueue.length === 0) {
+                // 空闲检测: 若已有积累且等待超过 idle, 先推送已有内容
+                if (acc.length > 0) {
+                  // 简单空闲检测: 用一次额外等待判断是否还有后续
+                  await new Promise((r) => setTimeout(r, Math.min(COALESCE_IDLE_MS, 150)));
+                  if (deltaQueue.length === 0) break;
+                }
+              }
             }
-            const chunk = deltaQueue.shift();
-            if (chunk) {
-              seen += chunk;
-              return chunk;
+            if (acc) {
+              seen += acc;
+              return acc;
             }
             return null; // 结束
           });
@@ -266,22 +284,20 @@ async function processMessage(config, msg, accountId) {
       log('[thinking]', thinking.slice(0, 200));
     }
 
-    // 工具追踪: 若 agent 调用了工具, 生成追踪摘要
-    let toolTraceText = '';
+    // 工具调用仅记录日志, 不展示在 footer (避免杂乱)
     if (tools && tools.length) {
-      toolTraceText = '\n\n> 🔧 已执行工具: ' + tools.map((t) => `\`${t.name}\``).join(' → ');
       log('[tools]', tools.map((t) => t.name).join(', '));
     }
 
-    // 耗时 footer
+    // 耗时 footer (只保留耗时, 无工具追踪)
     const elapsedMs = Date.now() - t0;
     const elapsedText = elapsedMs >= 1000 ? `${(elapsedMs / 1000).toFixed(1)}s` : `${elapsedMs}ms`;
     const thinkMark = thinking && thinking.trim() ? ' · 💭' : '';
-    const footerText = `\n\n---\n⚡ 处理耗时: ${elapsedText}${thinkMark}${config.showModel ? ` · 🧠 ${config.showModel}` : ''}`;
+    const footerText = `⚡ 处理耗时: ${elapsedText}${thinkMark}${config.showModel ? ` · 🧠 ${config.showModel}` : ''}`;
 
     // 流式主体已实时显示; footer 用单独小消息发送 (editMessage 对卡片消息不支持)
     const baseReply = (typeof reply === 'string' && reply) || '';
-    const tail = toolTraceText + footerText;
+    const tail = footerText;
     let replyMsgId = streamOut.streamMsgId;
     if (replyMsgId) {
       // 主体已流式显示, 工具追踪+耗时作为轻量 footer 消息 (若需要)

@@ -72,11 +72,19 @@ function checkVision() {
 }
 
 function checkStreaming() {
-  // 当前实现: 卡片流式打字机 (处理后播放, 非 token 级)
-  // 真流式: 需要 DSH runner 边生成边输出 (未实现)
+  // 真流式已实现: runner 边生成边输出 delta 流, bridge 实时推送到卡片
+  // 检测 runner 是否含流式代码 (delta 输出)
+  let trueStreaming = false;
+  try {
+    const runnerPath = path.join(DSH_HOME, 'profiles', 'headless', 'node_modules', 'dsh-lark-session', 'lib', 'index.js');
+    if (fs.existsSync(runnerPath)) {
+      const src = fs.readFileSync(runnerPath, 'utf8');
+      trueStreaming = src.includes('"delta"') || src.includes("type: \"delta\"");
+    }
+  } catch (e) {}
   return {
-    current: 'card-typewriter', // 卡片打字机 (处理后播放)
-    trueStreaming: false,       // 真流式未实现
+    current: trueStreaming ? 'true-streaming' : 'card-typewriter',
+    trueStreaming,
   };
 }
 
@@ -173,9 +181,9 @@ function main() {
       id: 'streaming',
       name: '流式输出',
       status: streaming.trueStreaming ? 'ok' : 'partial',
-      detail: streaming.current === 'card-typewriter' ? '卡片打字机 (处理后播放) — 非 token 级真流式' : '真流式',
-      howTo: '真流式需 DSH runner 边生成边输出 (规划中)',
-      verify: '观察回复是否为逐字打出',
+      detail: streaming.trueStreaming ? '真流式 (边生成边显示)' : '卡片打字机 (处理后播放)',
+      howTo: streaming.trueStreaming ? '已启用, 无需配置' : '需更新 DSH runner 支持流式',
+      verify: '发消息观察是否边生成边显示',
     },
     {
       id: 'vision',
