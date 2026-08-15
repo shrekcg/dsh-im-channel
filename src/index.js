@@ -312,7 +312,19 @@ async function main() {
         }, result.prompt, log, accountId);
         if (reply && reply !== '（无回复）' && reply !== '（处理出错）') {
           log(`[comment] 回复: ${reply.slice(0, 80)}`);
-          // TODO: 通过文档评论 API 回复 (需 comment.reply 权限)
+          // 通过文档评论 API 回复 (drive file.comment.replys create)
+          const replyRes = await session.run(
+            '/opt/homebrew/bin/lark-cli',
+            ['drive', 'file.comment.replys', 'create',
+              '--file-token', evt.fileToken,
+              '--file-type', evt.fileType || 'docx',
+              '--comment-id', result.commentId,
+              '--data', JSON.stringify({ content: { elements: [{ type: 'text', text_run: { content: reply.slice(0, 500) } }] } }),
+              '--as', 'user'],
+            { env: { ...process.env, LARKSUITE_CLI_NO_UPDATE_NOTIFIER: '1', LARKSUITE_CLI_NO_SKILLS_NOTIFIER: '1' } },
+            log
+          );
+          log(`[comment] 回复已发布 code=${replyRes.code}`);
         }
       } catch (e) {
         log('[comment] error:', e.message);

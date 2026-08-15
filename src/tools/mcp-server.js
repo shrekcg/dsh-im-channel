@@ -28,21 +28,50 @@ function runLark(args, opts = {}) {
     });
     let out = '';
     let err = '';
-    child.stdout.on('data', (d) => (out += d.toString()));
-    child.stderr.on('data', (d) => (err += d.toString()));
-    child.on('close', (code) => resolve({ code, out, err }));
-    child.on('error', (e) => resolve({ code: -1, out, err: String(e) }));
+    let settled = false;
+    const done = (res) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(res);
+    };
+    // 超时强杀 (默认 30s)
+    const timeoutMs = opts.timeout || 30000;
+    const timer = setTimeout(() => {
+      done({ code: -1, out, err: '[runLark] 超时 ' + timeoutMs + 'ms' });
+      try { child.kill('SIGKILL'); } catch (e) {}
+    }, timeoutMs);
+    // 输出上限 (防大输出撑爆内存, 默认 5MB)
+    const maxOut = opts.maxOutput || 5 * 1024 * 1024;
+    child.stdout.on('data', (d) => {
+      out += d.toString();
+      if (out.length > maxOut) {
+        out = out.slice(0, maxOut);
+        done({ code: -1, out, err: '[runLark] 输出超限' });
+        try { child.kill('SIGKILL'); } catch (e) {}
+      }
+    });
+    child.stderr.on('data', (d) => {
+      err += d.toString();
+      if (err.length > 1024 * 1024) err = err.slice(0, 1024 * 1024);
+    });
+    child.on('close', (code) => done({ code, out, err }));
+    child.on('error', (e) => done({ code: -1, out, err: String(e) }));
   });
 }
 
 async function larkJson(args, identity = 'bot') {
   const res = await runLark([...args, '--as', identity, '--json']);
+  // 退出码非 0 = 失败 (即使有 JSON 输出)
+  if (res.code !== 0) {
+    return { ok: false, error: res.err || res.out || `退出码 ${res.code}`, isError: true };
+  }
   try {
     const d = JSON.parse(res.out);
-    if (d.ok === false) return { ok: false, error: d.error?.message || res.err };
-    return { ok: true, data: d.data || d };
+    if (d.ok === false) return { ok: false, error: d.error?.message || res.err, isError: true };
+    return { ok: true, data: d.data || d, isError: false };
   } catch (e) {
-    return { ok: false, error: res.err || res.out };
+    return { ok: false, error: res.err || res.out, isError: true };
   }
 }
 
@@ -82,7 +111,7 @@ server.tool(
   },
   async ({ chat_id, limit, as }) => {
     const r = await larkJson(['im', '+chat-messages-list', '--chat-id', chat_id, '--page-size', String(limit || 20)], as || 'bot');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const msgs = (r.data.messages || r.data.items || []).map((m) => {
       const sender = m.sender?.sender_type || '?';
       let text = m.content || '';
@@ -101,7 +130,7 @@ server.tool(
   },
   async ({ name }) => {
     const r = await larkJson(['contact', '+search-user', '--query', name], 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const users = r.data.users || r.data.items || [];
     const lines = users.map((u) => `${u.name || u.english_name || ''}: ${u.open_id || u.user_id || ''}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(未找到)' }] };
@@ -120,7 +149,7 @@ server.tool(
   },
   async ({ doc, format, as }) => {
     const r = await larkJson(['docs', '+fetch', '--doc', doc, '--doc-format', format || 'markdown'], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const content = r.data.document?.content || '(空文档)';
     // 限制长度
     return { content: [{ type: 'text', text: String(content).slice(0, 4000) }] };
@@ -137,7 +166,7 @@ server.tool(
   },
   async ({ title, content, as }) => {
     const r = await larkJson(['docs', '+create', '--title', title, '--content', content], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const doc = r.data.document || r.data;
     const docId = doc.document_id || doc.id || (doc.url || '').split('/').pop() || '';
     // 用标准域名拼接 URL (lark-cli 返回的 my.feishu.cn 可能导致客户端"离线模式")
@@ -157,7 +186,7 @@ server.tool(
   },
   async ({ query, as }) => {
     const r = await larkJson(['im', '+chat-search', '--query', query], as || 'bot');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const chats = r.data.chats || r.data.items || [];
     const lines = chats.map((c) => `${c.name}: ${c.chat_id || c.id || ''}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(未找到)' }] };
@@ -173,7 +202,7 @@ server.tool(
   },
   async ({ chat_id, as }) => {
     const r = await larkJson(['im', '+chat-members-list', '--chat-id', chat_id], as || 'bot');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const users = r.data.users || r.data.members || [];
     const lines = users.map((u) => `${u.name || u.user_id || u.id || ''}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(无成员)' }] };
@@ -193,7 +222,7 @@ server.tool(
     const args = ['calendar', '+agenda'];
     if (date) args.push('--date', date);
     const r = await larkJson(args, as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const items = r.data.events || r.data.items || r.data;
     const text = typeof items === 'string' ? items : JSON.stringify(items).slice(0, 1500);
     return { content: [{ type: 'text', text }] };
@@ -211,7 +240,7 @@ server.tool(
   },
   async ({ summary, start, end, as }) => {
     const r = await larkJson(['calendar', '+create', '--summary', summary, '--start', start, '--end', end || ''], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: `已创建日程: ${summary}` }] };
   }
 );
@@ -226,7 +255,7 @@ server.tool(
   },
   async ({ as }) => {
     const r = await larkJson(['task', '+get-my-tasks'], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const tasks = r.data.tasks || r.data.items || [];
     const lines = tasks.map((t) => `[${t.completed ? '✓' : '○'}] ${t.summary}${t.due ? ` (due: ${t.due})` : ''}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(无任务)' }] };
@@ -249,7 +278,7 @@ server.tool(
     if (due) args.push('--due', due);
     if (assignee) args.push('--assignee', assignee);
     const r = await larkJson(args, as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: `已创建任务: ${summary}` }] };
   }
 );
@@ -267,7 +296,7 @@ server.tool(
   },
   async ({ app_token, table_id, limit, as }) => {
     const r = await larkJson(['base', '+data-query', '--base-token', app_token, '--table-id', table_id], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const records = r.data.records || r.data.items || [];
     const lines = records.map((rec, i) => `${i + 1}. ${JSON.stringify(rec.fields || rec).slice(0, 120)}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(无记录)' }] };
@@ -286,7 +315,7 @@ server.tool(
   },
   async ({ token, range, as }) => {
     const r = await larkJson(['sheets', '+cells-get', '--spreadsheet-token', token, '--range', range], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: JSON.stringify(r.data).slice(0, 2000) }] };
   }
 );
@@ -302,7 +331,7 @@ server.tool(
   },
   async ({ query, as }) => {
     const r = await larkJson(['wiki', '+node-list', '--query', query], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const nodes = r.data.items || r.data.nodes || [];
     const lines = nodes.map((n) => `${n.title}: ${n.node_token || n.node_id || ''}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(未找到)' }] };
@@ -324,7 +353,7 @@ server.tool(
     if (mailbox) args.push('--mailbox', mailbox);
     if (limit) args.push('--page-size', String(limit));
     const r = await larkJson(args, as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const items = r.data.items || r.data.messages || r.data;
     const text = typeof items === 'string' ? items : JSON.stringify(items).slice(0, 1500);
     return { content: [{ type: 'text', text }] };
@@ -342,7 +371,7 @@ server.tool(
   },
   async ({ to, subject, body, as }) => {
     const r = await larkJson(['mail', '+send', '--to', to, '--subject', subject, '--body', body], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: '邮件已发送' }] };
   }
 );
@@ -358,7 +387,7 @@ server.tool(
   },
   async ({ query, as }) => {
     const r = await larkJson(['drive', '+search', '--query', query], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const files = r.data.files || r.data.items || [];
     const lines = files.map((f) => `${f.name}: ${f.token || f.file_token || f.id || ''}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(未找到)' }] };
@@ -376,7 +405,7 @@ server.tool(
     const args = ['drive', 'files', 'list'];
     if (folder_token) args.push('--folder-token', folder_token);
     const r = await larkJson(args, as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const files = r.data.files || r.data.items || [];
     const lines = files.map((f) => `[${f.type}] ${f.name}: ${f.token || f.id || ''}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(空)' }] };
@@ -394,7 +423,7 @@ server.tool(
   },
   async ({ query, as }) => {
     const r = await larkJson(['minutes', '+search', '--query', query], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const items = r.data.items || r.data.minutes || [];
     const lines = items.map((m) => `${m.title || m.name || ''}: ${m.minute_token || m.token || m.id || ''}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(未找到)' }] };
@@ -411,7 +440,7 @@ server.tool(
   },
   async ({ as }) => {
     const r = await larkJson(['approval', 'tasks', 'query'], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const items = r.data.items || r.data.approvals || r.data.tasks || [];
     const lines = items.map((a) => `[${a.status || '?'}] ${a.approval_name || a.name || a.title || ''}: ${a.instance_code || a.id || ''}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(无待办)' }] };
@@ -431,7 +460,7 @@ server.tool(
   },
   async ({ doc, content, command, as }) => {
     const r = await larkJson(['docs', '+update', '--doc', doc, '--command', command || 'append', '--content', content], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: '文档已更新' }] };
   }
 );
@@ -446,7 +475,7 @@ server.tool(
   },
   async ({ parent_task_id, summary, as }) => {
     const r = await larkJson(['task', 'subtasks', 'create', '--task-guid', parent_task_id, '--data', JSON.stringify({ summary })], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: `已创建子任务: ${summary}` }] };
   }
 );
@@ -465,7 +494,7 @@ server.tool(
     if (chat_id) args.push('--chat-id', chat_id);
     if (limit) args.push('--page-size', String(limit));
     const r = await larkJson(args, as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const items = r.data.messages || r.data.items || [];
     const lines = items.map((m) => `[${m.sender?.name || m.sender?.id || '?'}] ${String(m.content || m.body?.content || '').slice(0, 80)}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(未找到)' }] };
@@ -482,7 +511,7 @@ server.tool(
   },
   async ({ thread_id, limit, as }) => {
     const r = await larkJson(['im', '+threads-messages-list', '--thread-id', thread_id, '--page-size', String(limit || 20)], as || 'bot');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const items = r.data.messages || r.data.items || [];
     const lines = items.map((m) => `[${m.sender?.sender_type || '?'}] ${String(m.content || m.body?.content || '').slice(0, 80)}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(空话题)' }] };
@@ -499,7 +528,7 @@ server.tool(
   },
   async ({ date, user_ids, as }) => {
     const r = await larkJson(['calendar', '+free-busy', '--date', date, '--user-ids', user_ids || ''], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: JSON.stringify(r.data).slice(0, 1500) }] };
   }
 );
@@ -513,7 +542,7 @@ server.tool(
   },
   async ({ doc, as }) => {
     const r = await larkJson(['drive', 'file.comments', 'list', '--file-token', doc, '--file-type', 'docx'], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const items = r.data.comments || r.data.items || [];
     const lines = items.map((c) => `[${c.operator?.name || '?'}] ${String(c.content || '').slice(0, 80)}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(无评论)' }] };
@@ -532,7 +561,7 @@ server.tool(
   },
   async ({ doc, source, as }) => {
     const r = await larkJson(['docs', '+media-insert', '--doc', doc, '--file', source], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: '媒体已插入文档' }] };
   }
 );
@@ -547,7 +576,7 @@ server.tool(
   },
   async ({ query, limit, as }) => {
     const r = await larkJson(['drive', '+search', '--query', query, '--page-size', String(limit || 10)], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const items = r.data.entities || r.data.files || r.data.items || [];
     const lines = items.map((e) => `[${e.type || 'doc'}] ${e.title || e.name || ''}: ${e.url || e.token || ''}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(未找到)' }] };
@@ -562,7 +591,7 @@ server.tool(
   },
   async ({ as }) => {
     const r = await larkJson(['wiki', '+space-list'], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const items = r.data.spaces || r.data.items || [];
     const lines = items.map((s) => `${s.name}: ${s.space_id || s.id || ''}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(无空间)' }] };
@@ -578,7 +607,7 @@ server.tool(
   },
   async ({ task_id, as }) => {
     const r = await larkJson(['task', 'task', 'get', '--task-guid', task_id], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const t = r.data.task || r.data;
     const lines = [
       `标题: ${t.summary || t.title || ''}`,
@@ -598,7 +627,7 @@ server.tool(
   },
   async ({ as }) => {
     const r = await larkJson(['task', '+get-related-tasks'], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const tasks = r.data.tasks || r.data.items || [];
     const lines = tasks.map((t) => `[${t.completed ? '✓' : '○'}] ${t.summary}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(无相关任务)' }] };
@@ -617,7 +646,7 @@ server.tool(
   },
   async ({ task_id, content, as }) => {
     const r = await larkJson(['task', '+comment', '--task-guid', task_id, '--content', content], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: '评论已添加' }] };
   }
 );
@@ -631,7 +660,7 @@ server.tool(
   },
   async ({ query, as }) => {
     const r = await larkJson(['calendar', '+search-event', '--query', query], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     const items = r.data.events || r.data.items || [];
     const lines = items.map((e) => `${e.summary || e.name || ''}: ${e.start_time || e.start || ''}`);
     return { content: [{ type: 'text', text: lines.join('\n') || '(未找到)' }] };
@@ -649,7 +678,7 @@ server.tool(
   },
   async ({ base_token, name, fields, as }) => {
     const r = await larkJson(['base', '+table-create', '--base-token', base_token, '--name', name, '--fields', fields || '[]'], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: `已创建数据表: ${name}` }] };
   }
 );
@@ -665,7 +694,7 @@ server.tool(
   },
   async ({ app_token, table_id, fields, as }) => {
     const r = await larkJson(['base', '+records-create', '--app-token', app_token, '--table-id', table_id, '--fields', fields], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: '记录已创建' }] };
   }
 );
@@ -725,7 +754,7 @@ server.tool(
   async ({ app_token, table_id, field_name, field_type, as }) => {
     const field = JSON.stringify({ field_name, type: field_type || 'text' });
     const r = await larkJson(['base', '+field-create', '--base-token', app_token, '--table-id', table_id, '--json', field], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: `已创建字段: ${field_name}` }] };
   }
 );
@@ -741,7 +770,7 @@ server.tool(
   },
   async ({ app_token, table_id, view_name, as }) => {
     const r = await larkJson(['base', '+view-create', '--base-token', app_token, '--table-id', table_id, '--name', view_name], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: `已创建视图: ${view_name}` }] };
   }
 );
@@ -756,7 +785,7 @@ server.tool(
   },
   async ({ event_id, attendee_ids, as }) => {
     const r = await larkJson(['calendar', '+update', '--event-id', event_id, '--add-attendee-ids', attendee_ids], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: '已添加参会人' }] };
   }
 );
@@ -772,7 +801,7 @@ server.tool(
   },
   async ({ space_id, title, obj_type, as }) => {
     const r = await larkJson(['wiki', '+node-create', '--space-id', space_id, '--title', title, '--obj-type', obj_type || 'doc'], as || 'user');
-    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] };
+    if (!r.ok) return { content: [{ type: 'text', text: `失败: ${r.error}` }] , isError: true };
     return { content: [{ type: 'text', text: `已创建节点: ${title}` }] };
   }
 );

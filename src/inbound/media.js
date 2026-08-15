@@ -26,6 +26,11 @@ function extractResources(msg) {
 
 /**
  * 下载消息媒体到本地目录
+ *
+ * 注意: SDK downloadResource/downloadResourceToFile 的 ResourceType 只支持
+ * 'image' | 'file' (飞书 messageResource API 用 file 取所有附件类型),
+ * 语音/视频统一按 'file' 下载, 再用响应 content-type 推断真实扩展名。
+ *
  * @param {object} channel SDK channel 实例
  * @param {object} msg 消息对象
  * @param {object} config 配置
@@ -41,19 +46,22 @@ async function downloadMedia(channel, msg, config) {
   const results = [];
   for (const res of resources) {
     try {
-      // 已在本地 (SDK 自动下载) 则跳过
-      if (res.localPath && fs.existsSync(res.localPath)) {
-        results.push({ ...res, localPath: res.localPath });
-        continue;
-      }
-      const buf = await channel.downloadResource(msg.messageId, res.fileKey, res.type);
-      if (!buf || !buf.length) continue;
-
-      const ext = extForType(res.type);
-      const filename = `${sanitize(msg.messageId)}-${sanitize(res.fileKey)}${ext}`;
+      // 统一按 'file' 下载 (SDK ResourceType 仅 image|file)
+      const apiType = res.type === 'image' ? 'image' : 'file';
+      const filename = `${sanitize(msg.messageId)}-${sanitize(res.fileKey)}.media`;
       const localPath = path.join(dir, filename);
-      fs.writeFileSync(localPath, buf);
-      results.push({ ...res, localPath, sizeBytes: buf.length });
+      // downloadResourceToFile 直接落盘 (避免大媒体占内存)
+      const meta = await channel.downloadResourceToFile(msg.messageId, res.fileKey, apiType, localPath);
+      // 用真实 content-type 推断扩展名, 重命名文件
+      const realExt = extFromContentType(meta.contentType, res.type);
+      if (realExt && !filename.endsWith(realExt)) {
+        const finalPath = localPath.replace(/\.media$/, realExt);
+        if (fs.existsSync(finalPath)) fs.rmSync(finalPath);
+        fs.renameSync(localPath, finalPath);
+        results.push({ ...res, localPath: finalPath, sizeBytes: meta.bytesWritten, contentType: meta.contentType });
+      } else {
+        results.push({ ...res, localPath, sizeBytes: meta.bytesWritten, contentType: meta.contentType });
+      }
     } catch (e) {
       console.error(`[media] 下载失败 ${res.type} ${res.fileKey}:`, e.message);
     }
@@ -61,8 +69,24 @@ async function downloadMedia(channel, msg, config) {
   return results;
 }
 
-function extForType(type) {
-  switch (type) {
+/** 根据 content-type 推断扩展名 (带兜底) */
+function extFromContentType(contentType, fallbackType) {
+  const map = {
+    'image/jpeg': '.jpg', 'image/png': '.png', 'image/gif': '.gif', 'image/webp': '.webp',
+    'image/bmp': '.bmp', 'image/svg+xml': '.svg',
+    'audio/mpeg': '.mp3', 'audio/mp4': '.m4a', 'audio/ogg': '.ogg', 'audio/wav': '.wav', 'audio/opus': '.opus', 'audio/webm': '.webm',
+    'video/mp4': '.mp4', 'video/webm': '.webm', 'video/quicktime': '.mov', 'video/x-msvideo': '.avi',
+    'application/pdf': '.pdf', 'text/plain': '.txt', 'text/markdown': '.md',
+    'application/json': '.json', 'application/zip': '.zip',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  };
+  if (contentType) {
+    const base = contentType.split(';')[0].trim().toLowerCase();
+    if (map[base]) return map[base];
+  }
+  // 兜底: 按资源类型给通用扩展名
+  switch (fallbackType) {
     case 'image': return '.img';
     case 'audio': return '.audio';
     case 'video': return '.video';
