@@ -121,4 +121,32 @@ function mediaToPromptText(mediaList) {
   return '\n【消息附带媒体】\n' + lines.join('\n');
 }
 
-module.exports = { extractResources, downloadMedia, mediaToPromptText };
+/**
+ * 检测 DSH 是否配置了图片视觉理解能力
+ * 判断依据: visionpower 插件存在 + 默认模型为多模态
+ * @param {string} dshHome DSH 数据目录
+ * @returns {{hasPlugin: boolean, isVisionModel: boolean, model: string}}
+ */
+function detectVisionCapability(dshHome) {
+  const fs = require('fs');
+  const path = require('path');
+  let hasPlugin = false;
+  for (const profile of ['headless', 'web']) {
+    if (fs.existsSync(path.join(dshHome, 'profiles', profile, 'node_modules', 'visionpower'))) {
+      hasPlugin = true;
+      break;
+    }
+  }
+  // 读默认模型
+  let model = '';
+  try {
+    const settings = fs.readFileSync(path.join(dshHome, 'settings.yaml'), 'utf8');
+    const m = settings.match(/agent-default-model:[\s\S]*?model:\s*(\S+)/);
+    model = m ? m[1] : '';
+  } catch (e) {}
+  // 多模态模型关键词
+  const isVisionModel = /vision|omni|vl|visual|qwen.*max|gpt-4o|glm-4v/i.test(model || '');
+  return { hasPlugin, isVisionModel, model };
+}
+
+module.exports = { extractResources, downloadMedia, mediaToPromptText, detectVisionCapability };

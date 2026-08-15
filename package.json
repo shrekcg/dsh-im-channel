@@ -11,7 +11,9 @@
     "setup": "node scripts/setup.js",
     "install-bridge": "node scripts/install.js install",
     "uninstall-bridge": "node scripts/install.js uninstall",
-    "status": "node scripts/install.js status"
+    "status": "node scripts/install.js status",
+    "features": "node src/commands/features.js",
+    "features:json": "node src/commands/features.js --json"
   },
   "keywords": [
     "feishu",

@@ -164,10 +164,21 @@ async function processMessage(config, msg, accountId) {
 
   // 下载媒体 (图片/文件/音频/视频)
   let mediaText = '';
+  let visionHint = '';
   try {
     const ch = channel.getChannel(config);
     const mediaList = await media.downloadMedia(ch, msg, config);
     mediaText = media.mediaToPromptText(mediaList);
+    // 视觉能力检测: 收到图片时判断 DSH 能否识别
+    const hasImage = mediaList.some((m) => m.type === 'image');
+    if (hasImage) {
+      const vision = media.detectVisionCapability(config.dshHome);
+      if (!vision.hasPlugin) {
+        visionHint = '\n\n⚠️ 注意: 你发送了图片, 但当前 DSH 未配置视觉理解插件, 我无法识别图片内容。配置方法: 安装 vision 插件 (如 visionpower) 并配置多模态模型。';
+      } else if (!vision.isVisionModel) {
+        visionHint = `\n\n⚠️ 注意: 你发送了图片, 当前默认模型 (${vision.model || '未知'}) 可能不支持视觉, 我可能无法识别图片内容。可切换到多模态模型 (如 visionpower 配置)。`;
+      }
+    }
   } catch (e) {
     log('[media] 处理失败:', e.message);
   }
@@ -197,7 +208,7 @@ async function processMessage(config, msg, accountId) {
     const senderName = msg.senderName || msg.senderId || '用户';
     // 限制消息内容长度 (防 argv E2BIG: macOS 单参数约 256KB, 保守用 50KB)
     const MAX_CONTENT = 50 * 1024;
-    let msgContent = content + (mediaText ? '\n\n' + mediaText : '');
+    let msgContent = content + (mediaText ? '\n\n' + mediaText : '') + visionHint;
     if (msgContent.length > MAX_CONTENT) {
       msgContent = msgContent.slice(0, MAX_CONTENT) + '\n…(内容过长已截断)';
     }
