@@ -233,9 +233,19 @@ async function processMessage(config, msg, accountId) {
     const elapsedText = elapsedMs >= 1000 ? `${(elapsedMs / 1000).toFixed(1)}s` : `${elapsedMs}ms`;
     const footerText = `\n\n---\n⚡ 处理耗时: ${elapsedText}${config.showModel ? ` · 🧠 ${config.showModel}` : ''}`;
 
-    // 回复内容处理: 限制长度 + @ 渲染
+    // 回复内容处理: 先 @ 渲染再截断 (避免截断切断 <at> 标签)
     let finalReply = reply;
-    if (finalReply.length > 1500) finalReply = finalReply.slice(0, 1500) + '…';
+    const { text: mentionRendered } = mention.convertMentions(finalReply);
+    if (mentionRendered.length > 1500) {
+      // 截断到 1500, 但确保不切断未闭合的 <at> 标签
+      let truncated = mentionRendered.slice(0, 1500) + '…';
+      const openAt = truncated.lastIndexOf('<at');
+      const closeAt = truncated.lastIndexOf('</at>');
+      if (openAt > closeAt) truncated = truncated.slice(0, openAt) + '…'; // 标签未闭合则回退到标签前
+      finalReply = truncated;
+    } else {
+      finalReply = mentionRendered;
+    }
     finalReply = thinkingText + finalReply + toolTraceText + footerText;
     const { text: mentionText } = mention.convertMentions(finalReply);
 

@@ -52,10 +52,11 @@ function deriveSessionId(msg, accountId) {
   return `${prefix}feishu-${sender}`;
 }
 
-/** 执行子进程并返回 {code, out, err}, 支持真超时强杀 */
+/** 执行子进程并返回 {code, out, err}, 支持真超时强杀 (含进程组) */
 function run(bin, args, opts = {}, log = () => {}) {
   return new Promise((resolve) => {
-    const child = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'], ...opts });
+    // detached + 独立进程组, 超时才能杀整个进程树 (防子进程残留)
+    const child = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'], detached: true, ...opts });
     let out = '';
     let err = '';
     let settled = false;
@@ -67,7 +68,8 @@ function run(bin, args, opts = {}, log = () => {}) {
     };
     const timeoutMs = opts.timeout || 0;
     const timer = timeoutMs ? setTimeout(() => {
-      log(`[session] 超时 ${timeoutMs}ms, 强杀 ${bin}`);
+      log(`[session] 超时 ${timeoutMs}ms, 强杀进程组 ${bin}`);
+      try { process.kill(-child.pid, 'SIGKILL'); } catch (e) {} // 负 PID = 进程组
       try { child.kill('SIGKILL'); } catch (e) {}
     }, timeoutMs) : null;
     child.stdout.on('data', (d) => (out += d.toString()));
