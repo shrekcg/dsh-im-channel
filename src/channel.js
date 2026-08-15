@@ -210,7 +210,8 @@ async function appendCardFooter(config, messageId, bodyText, footerText) {
       config: { wide_screen_mode: true },
       body: {
         elements: [
-          { tag: 'markdown', content: bodyText },
+          // element_id 保持与 SDK 流式卡片一致 (stream_md), 避免飞书更新校验失败
+          { tag: 'markdown', element_id: 'stream_md', content: bodyText },
           { tag: 'hr' },
           { tag: 'markdown', content: footerText, text_size: 'notation' },
         ],
