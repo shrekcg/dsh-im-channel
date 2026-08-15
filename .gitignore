@@ -13,3 +13,4 @@ lark-events/
 
 # Test artifacts
 test-*.js
+*.png
