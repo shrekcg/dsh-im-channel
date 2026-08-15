@@ -16,8 +16,39 @@ const { McpServer } = require('@modelcontextprotocol/sdk/server/mcp.js');
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio.js');
 const { z } = require('zod');
 const { spawn } = require('child_process');
+const { TOOL_SCOPES } = require('../core/scope-manager');
 
 const LARK_CLI = process.env.LARK_CLI || '/opt/homebrew/bin/lark-cli';
+
+// scope 状态缓存 (避免每个工具调用都查 API)
+let scopeCache = null;
+let scopeCacheTs = 0;
+const SCOPE_CACHE_TTL = 5 * 60 * 1000; // 5 分钟
+
+/** 查询应用已授权 scope (带缓存) */
+async function getGrantedScopes() {
+  const now = Date.now();
+  if (scopeCache && now - scopeCacheTs < SCOPE_CACHE_TTL) return scopeCache;
+  try {
+    const res = await runLark(['api', 'GET', '/open-apis/application/v6/scopes', '--as', 'bot']);
+    const d = JSON.parse(res.out);
+    if (d.ok === false) return null;
+    scopeCache = (d.data?.scopes || []).filter((s) => s.grant_status === 1).map((s) => s.scope_name);
+    scopeCacheTs = now;
+    return scopeCache;
+  } catch (e) {
+    return null;
+  }
+}
+
+/** 检查工具所需 scope, 返回缺失清单 (空 = 无缺失) */
+async function checkToolScopes(toolName) {
+  const required = TOOL_SCOPES[toolName];
+  if (!required || !required.length) return [];
+  const granted = await getGrantedScopes();
+  if (!granted) return [];
+  return required.filter((s) => !granted.includes(s));
+}
 
 // ---------- 工具 ----------
 function runLark(args, opts = {}) {
@@ -61,7 +92,15 @@ function runLark(args, opts = {}) {
 }
 
 async function larkJson(args, identity = 'bot') {
-  const res = await runLark([...args, '--as', identity, '--json']);
+  // 身份策略: 工具定义的身份 (user=用户数据操作, bot=消息/群操作)
+  // 安全: 写操作默认降级为 bot, 仅 ALLOW_USER_WRITES=true 时允许 user 写
+  // 读操作保持工具定义身份 (读取用户数据需要 user)
+  const isWrite = /create|update|delete|send|add|remove|move|complete|reopen|upload/i.test(args.join(' '));
+  let safeIdentity = identity;
+  if (isWrite && identity === 'user' && process.env.ALLOW_USER_WRITES !== 'true') {
+    safeIdentity = 'bot'; // 写操作默认用 bot, 防止冒充用户写入
+  }
+  const res = await runLark([...args, '--as', safeIdentity, '--json']);
   // 退出码非 0 = 失败 (即使有 JSON 输出)
   if (res.code !== 0) {
     return { ok: false, error: res.err || res.out || `退出码 ${res.code}`, isError: true };
@@ -88,15 +127,19 @@ server.tool(
   {
     target: z.string().describe('接收者: chat_id (oc_开头) 或 user open_id (ou_开头)'),
     text: z.string().describe('消息文本内容'),
-    as: z.enum(['bot', 'user']).optional().describe('发送身份, 默认 bot'),
   },
-  async ({ target, text, as }) => {
+  async ({ target, text }) => {
+    // scope 前置检查 (防止静默失败)
+    const missing = await checkToolScopes('send_message');
+    if (missing.length) {
+      return { content: [{ type: 'text', text: `权限不足: 缺少 ${missing.join(', ')} (在开发者后台申请)` }], isError: true };
+    }
     const isChat = target.startsWith('oc_');
     const args = ['im', '+messages-send'];
     if (isChat) args.push('--chat-id', target);
     else args.push('--user-id', target);
     args.push('--msg-type', 'text', '--content', JSON.stringify({ text }));
-    const r = await larkJson(args, as || 'bot');
+    const r = await larkJson(args, 'bot');
     return { content: [{ type: 'text', text: r.ok ? `已发送: ${r.data.message_id}` : `失败: ${r.error}` }] };
   }
 );

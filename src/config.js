@@ -102,7 +102,9 @@ function merge(base, ...overrides) {
 function loadConfig(dir) {
   const fileCfg = loadConfigFile(dir);
   const envCfg = cleanEmpty(loadFromEnv());
-  const config = merge(DEFAULTS, fileCfg, envCfg);
+  // 优先级: config.json (用户显式配置, 如 setup 写入) > 环境变量 (launchd/部署兜底)
+  // 避免"双真相源"问题: setup 写的 config.json 不被 launchd plist 的 env 遮蔽
+  const config = merge(DEFAULTS, envCfg, fileCfg);
 
   // 派生路径
   config.dshBin = config.dshBin || path.join(os.homedir(), '.local', 'bin', 'dsh');
