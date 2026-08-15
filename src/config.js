@@ -22,6 +22,8 @@ const DEFAULTS = {
   respondToMentionAll: true,
   typingChunkMs: 250,               // 卡片打字机每块间隔
   typingChunkSize: 8,               // 每块字符数
+  streamThrottleMs: 60,             // 流式节流时间阈值 (ms)
+  streamThrottleChars: 12,          // 流式节流字符阈值 (攒够即刷新)
   dshTimeoutMs: 300000,             // DSH 处理超时
   mediaMaxMb: 20,                   // 媒体文件大小上限
   mediaDir: '',                     // 媒体下载目录 (默认项目内 media/)
@@ -61,6 +63,8 @@ function loadFromEnv() {
     respondToMentionAll: process.env.RESPOND_TO_MENTION_ALL !== 'false',
     typingChunkMs: parseInt(process.env.TYPING_CHUNK_MS || '', 10) || undefined,
     typingChunkSize: parseInt(process.env.TYPING_CHUNK_SIZE || '', 10) || undefined,
+    streamThrottleMs: parseInt(process.env.STREAM_THROTTLE_MS || '', 10) || undefined,
+    streamThrottleChars: parseInt(process.env.STREAM_THROTTLE_CHARS || '', 10) || undefined,
     dshTimeoutMs: parseInt(process.env.DSH_TIMEOUT_MS || '', 10) || undefined,
     mediaMaxMb: parseInt(process.env.MEDIA_MAX_MB || '', 10) || undefined,
     mediaDir: process.env.MEDIA_DIR || '',

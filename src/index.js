@@ -240,24 +240,14 @@ async function processMessage(config, msg, accountId) {
           await ch.connect();
           let seen = '';
           const msgId = await channel.streamReplyLive(config, msg.chatId, msg.messageId, async () => {
-            // 小块多次返回 (6字符/次) + 轻量 pacing, 让打字机效果可见
-            // (SDK 默认 100ms/50字符 节流在快速生成时几乎瞬时, 加 pacing 让流式可感知)
-            const CHUNK = 6;
-            const PACE_MS = 25;
+            // 消费 delta 队列: 交给 SDK 节流器控制显示节奏 (streamThrottleChars=12 匀速)
+            // 这里不做手动 pacing, 避免双重控制导致一顿一顿
             while (deltaQueue.length === 0 && !deltaDone) {
-              await new Promise((r) => setTimeout(r, 30));
+              await new Promise((r) => setTimeout(r, 20));
             }
             if (deltaQueue.length > 0) {
               const chunk = deltaQueue.shift();
-              if (chunk.length > CHUNK) {
-                deltaQueue.unshift(chunk.slice(CHUNK));
-                const piece = chunk.slice(0, CHUNK);
-                seen += piece;
-                await new Promise((r) => setTimeout(r, PACE_MS)); // 显示节奏
-                return piece;
-              }
               seen += chunk;
-              await new Promise((r) => setTimeout(r, PACE_MS));
               return chunk;
             }
             return null; // 结束

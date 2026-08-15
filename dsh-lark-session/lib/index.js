@@ -126,8 +126,8 @@ async function run(ctx, task, sessionId, io) {
       streamStarted = true;
       io.stdout.write(JSON.stringify({ type: "delta", sessionId: String(sid) }) + "\n");
     }
-    // 逐块输出 (256 字符/块, 减少推送频率, 配合 bridge 端 coalesce 更顺畅)
-    const chunk = 256;
+    // 逐块输出 (64 字符/块, 配合 SDK 节流器匀速显示)
+    const chunk = 64;
     for (let i = 0; i < text.length; i += chunk) {
       io.stdout.write(JSON.stringify({ type: "delta", text: text.slice(i, i + chunk) }) + "\n");
     }
