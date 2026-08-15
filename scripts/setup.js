@@ -83,8 +83,10 @@ async function step2_app_config() {
   if (fs.existsSync(cfgPath)) cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
   cfg.appId = appId;
   cfg.appSecret = appSecret;
-  fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
-  console.log('✅ 已保存到 config.json (已加入 .gitignore, 不会提交)');
+  // 0600 权限落盘 (含密钥, 防止其他用户读取)
+  fs.writeFileSync(cfgPath, JSON.stringify(cfg, null, 2), { mode: 0o600 });
+  try { fs.chmodSync(cfgPath, 0o600); } catch (e) {}
+  console.log('✅ 已保存到 config.json (0600 权限, 已加入 .gitignore, 不会提交)');
   return true;
 }
 
