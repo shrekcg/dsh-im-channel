@@ -47,6 +47,61 @@ const status = require('./core/status');
 const { startStatusServer } = require('./http-status');
 const slash = require('./commands/slash');
 
+// ---------- 多渠道路由 helper ----------
+// 按 config.channelType 分发到对应渠道的收发方法 (飞书用原 API, 其他渠道用适配器)
+function getChAdapter(config) {
+  const type = config.channelType || 'feishu';
+  if (type === 'feishu') return null; // 飞书走原 API
+  const { getAdapter } = require('./channel');
+  return getAdapter(type, config, `default-${type}`);
+}
+
+async function chSendText(config, chatId, text, opts = {}) {
+  const inst = getChAdapter(config);
+  if (inst) return inst.sendText(chatId, text, opts);
+  return channel.sendText(config, chatId, text, opts);
+}
+
+async function chStreamReply(config, chatId, replyTo, fullText) {
+  const inst = getChAdapter(config);
+  if (inst) {
+    // 非飞书渠道: 用流式接口播放 (适配器内部处理)
+    let i = 0;
+    return inst.streamReplyLive(chatId, replyTo, async () => {
+      if (i >= fullText.length) return null;
+      const chunk = fullText.slice(i, i + 20);
+      i += 20;
+      await new Promise((r) => setTimeout(r, 25));
+      return chunk;
+    });
+  }
+  return channel.streamReply(config, chatId, replyTo, fullText);
+}
+
+async function chStreamReplyLive(config, chatId, replyTo, onChunk) {
+  const inst = getChAdapter(config);
+  if (inst) return inst.streamReplyLive(chatId, replyTo, onChunk);
+  return channel.streamReplyLive(config, chatId, replyTo, onChunk);
+}
+
+async function chAddReaction(config, messageId, emoji) {
+  const inst = getChAdapter(config);
+  if (inst) return inst.addReaction?.(messageId, emoji);
+  return channel.addReaction(config, messageId, emoji);
+}
+
+async function chRemoveReaction(config, messageId, emoji) {
+  const inst = getChAdapter(config);
+  if (inst) return inst.removeReaction?.(messageId, emoji);
+  return channel.removeReaction(config, messageId, emoji);
+}
+
+async function chAppendFooter(config, messageId, bodyText, footerText) {
+  const inst = getChAdapter(config);
+  if (inst) return inst.appendCardFooter?.(messageId, bodyText, footerText);
+  return channel.appendCardFooter(config, messageId, bodyText, footerText);
+}
+
 const BRIDGE_DIR = __dirname.replace(/\/src$/, '');
 
 // 最近消息上下文映射: messageId → {chatId, chatType, threadId, rootId, senderId, senderIsBot}
@@ -153,7 +208,7 @@ async function processMessage(config, msg, accountId) {
   // 合并转发: 仅当 SDK 未展开 (占位符) 时才二次拉取, 避免覆盖已展开内容
   if (mergeForward.isMergeForward(msg)) {
     const isPlaceholder = !content || content.includes('<forwarded_messages/>') || content.includes('Merged and Forwarded');
-    if (isPlaceholder) {
+    if (isPlaceholder && !getChAdapter(config)) {
       try {
         const ch = channel.getChannel(config);
         const expanded = await mergeForward.expandMergeForward(ch, msg);
@@ -171,17 +226,25 @@ async function processMessage(config, msg, accountId) {
   let mediaText = '';
   let visionHint = '';
   try {
-    const ch = channel.getChannel(config);
-    const mediaList = await media.downloadMedia(ch, msg, config);
-    mediaText = media.mediaToPromptText(mediaList);
-    // 视觉能力检测: 收到图片时判断 DSH 能否识别
-    const hasImage = mediaList.some((m) => m.type === 'image');
-    if (hasImage) {
-      const vision = media.detectVisionCapability(config.dshHome);
-      if (!vision.hasPlugin) {
-        visionHint = '\n\n⚠️ 注意: 你发送了图片, 但当前环境未配置视觉识别插件, 无法识别图片内容。需配置视觉识别插件后才能看图。';
-      } else if (!vision.isVisionModel) {
-        visionHint = `\n\n⚠️ 注意: 你发送了图片, 但当前默认模型 (${vision.model || '未知'}) 可能不支持视觉识别, 可能无法识别图片内容。需切换为支持视觉识别的模型。`;
+    const chInst = getChAdapter(config);
+    let mediaList = [];
+    if (chInst && chInst.downloadMedia) {
+      mediaList = await chInst.downloadMedia(msg, config);
+    } else if (!chInst) {
+      const ch = channel.getChannel(config);
+      mediaList = await media.downloadMedia(ch, msg, config);
+    }
+    if (mediaList) {
+      mediaText = media.mediaToPromptText(mediaList);
+      // 视觉能力检测: 收到图片时判断 DSH 能否识别
+      const hasImage = mediaList.some((m) => m.type === 'image');
+      if (hasImage) {
+        const vision = media.detectVisionCapability(config.dshHome);
+        if (!vision.hasPlugin) {
+          visionHint = '\n\n⚠️ 注意: 你发送了图片, 但当前环境未配置视觉识别插件, 无法识别图片内容。需配置视觉识别插件后才能看图。';
+        } else if (!vision.isVisionModel) {
+          visionHint = `\n\n⚠️ 注意: 你发送了图片, 但当前默认模型 (${vision.model || '未知'}) 可能不支持视觉识别, 可能无法识别图片内容。需切换为支持视觉识别的模型。`;
+        }
       }
     }
   } catch (e) {
@@ -212,14 +275,14 @@ async function processMessage(config, msg, accountId) {
     const result = await slash.handleSlashCommand(config, msg, content, sessionId, log);
     if (result.handled) {
       const { text: cmdText } = mention.convertMentions(result.reply || '');
-      await channel.sendText(config, msg.chatId, cmdText, { replyTo: msg.messageId });
+      await chSendText(config, msg.chatId, cmdText, { replyTo: msg.messageId });
       log(`[slash] 已回复 /${slash.parseCommand(content).cmd}`);
       return;
     }
   }
 
   // 体验: 立即加"思考中"表情; 用 try/finally 保证任何路径都移除 (防残留)
-  await channel.addReaction(config, msg.messageId, 'THINKING');
+  await chAddReaction(config, msg.messageId, 'THINKING');
   try {
     // 构造任务 → 持久会话
     const senderName = msg.senderName || msg.senderId || '用户';
@@ -256,7 +319,7 @@ async function processMessage(config, msg, accountId) {
           const ch = channel.getChannel(config);
           await ch.connect();
           let seen = '';
-          const msgId = await channel.streamReplyLive(config, msg.chatId, msg.messageId, async () => {
+          const msgId = await chStreamReplyLive(config, msg.chatId, msg.messageId, async () => {
             // 流式节奏: 每次取小块 (2-4字) + 按间隔等待, 让 SDK Throttle 靠时间阈值
             // 逐步 PATCH (而非攒够字符一次跳), 配合飞书 70ms 原生动画 → 平滑打字机
             // 内部等待到有内容或结束 (不返回空串, 避免 SDK 提前结束流式)
@@ -317,7 +380,7 @@ async function processMessage(config, msg, accountId) {
         .replace(/<[^>]+>/g, '')       // 去掉 HTML 标签
         .replace(/\n{3,}/g, '\n\n')
         .trim();
-      await channel.appendCardFooter(config, replyMsgId, bodyClean || '(无内容)', footerText);
+      await chAppendFooter(config, replyMsgId, bodyClean || '(无内容)', footerText);
     } else {
       // 流式失败: 直接发完整 (正文 + footer)
       let finalReply = baseReply + '\n\n---\n' + footerText;
@@ -331,7 +394,7 @@ async function processMessage(config, msg, accountId) {
       } else {
         finalReply = mentionRendered;
       }
-      replyMsgId = await channel.streamReply(config, msg.chatId, msg.messageId, finalReply);
+      replyMsgId = await chStreamReply(config, msg.chatId, msg.messageId, finalReply);
     }
     log(`[reply] 回复完成 session=${sessionId} elapsed=${elapsedText} streamed=${streamOut.streamedText.length}B`);
 
@@ -349,7 +412,7 @@ async function processMessage(config, msg, accountId) {
     }
   } finally {
     // 任何情况下都移除"思考中"表情 (防残留)
-    await channel.removeReaction(config, msg.messageId, 'THINKING');
+    await chRemoveReaction(config, msg.messageId, 'THINKING');
   }
 }
 
@@ -488,7 +551,39 @@ async function main() {
       status.updateFeishu({ connected: false });
     }
   }
-  log('所有账号处理完成, 等待飞书消息...');
+
+  // ---------- 多渠道启动 (非飞书渠道, 可选) ----------
+  // 检测环境变量/配置, 启动已配置的渠道 (telegram/dingtalk/slack/discord/qq/wechat/whatsapp)
+  const EXTRA_CHANNELS = [
+    ['telegram', 'TELEGRAM_BOT_TOKEN'],
+    ['dingtalk', 'DINGTALK_APP_KEY'],
+    ['slack', 'SLACK_BOT_TOKEN'],
+    ['discord', 'DISCORD_BOT_TOKEN'],
+    ['qq', 'QQ_APP_ID'],
+    ['wechat', 'WECHAT_MODE'],
+    ['whatsapp', 'WHATSAPP_MODE'],
+  ];
+  for (const [type, envKey] of EXTRA_CHANNELS) {
+    const enabled = process.env[envKey] || config[`${type}Enabled`];
+    if (!enabled) continue; // 未配置, 跳过
+    try {
+      const { getAdapter } = require('./channel');
+      const inst = getAdapter(type, { ...config, [type.toLowerCase() + 'BotToken']: process.env[envKey] }, `default-${type}`);
+      inst.on('message', async (msg) => {
+        try {
+          await processMessage({ ...config, channelType: type }, msg, type);
+        } catch (e) {
+          log(`[${type}][msg] error:`, e.message);
+        }
+      });
+      inst.on('error', (e) => log(`[${type}][channel] error:`, e.message));
+      await inst.connect();
+      log(`[${type}] 渠道已连接 (bot=${inst.botName || type})`);
+    } catch (e) {
+      log(`[${type}] 渠道启动失败:`, e.message, '(跳过)');
+    }
+  }
+  log('所有账号处理完成, 等待渠道消息...');
 }
 
 process.on('SIGTERM', () => { log('SIGTERM, 退出'); process.exit(0); });
