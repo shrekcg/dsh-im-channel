@@ -197,18 +197,19 @@ test('pacing: takeChunk 空队列返回空串', () => {
 const statusMod = require('../src/core/status');
 
 test('status: 初始飞书未连接', () => {
+  statusMod.updateFeishu({ connected: false, botName: '', accounts: [] });
   const s = statusMod.getStatus();
   assert.strictEqual(s.feishu.connected, false);
-  assert.strictEqual(s.channels.length, 4);
+  assert.strictEqual(s.channels.length, 8);
   assert.strictEqual(s.channels[0].id, 'feishu');
 });
 
-test('status: 预留渠道位 (钉钉/QQ/微信)', () => {
+test('status: 全渠道位 (钉钉/QQ/微信/Slack/Telegram/Discord/WhatsApp)', () => {
   const s = statusMod.getStatus();
   const ids = s.channels.map((c) => c.id);
-  assert.ok(ids.includes('dingtalk'));
-  assert.ok(ids.includes('qq'));
-  assert.ok(ids.includes('wechat'));
+  for (const id of ['feishu','dingtalk','qq','wechat','slack','telegram','discord','whatsapp']) {
+    assert.ok(ids.includes(id), `缺 ${id}`);
+  }
 });
 
 test('status: 更新飞书状态后正确反映', () => {

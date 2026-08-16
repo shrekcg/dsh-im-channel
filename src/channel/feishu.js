@@ -225,4 +225,12 @@ async function appendCardFooter(config, messageId, bodyText, footerText) {
   }
 }
 
-module.exports = { getChannel, connect, addReaction, removeReaction, streamReply, streamReplyLive, appendCardFooter, sendText, sendMedia };
+/** 飞书渠道适配器 (静态方法包装, 兼容渠道抽象层) */
+const FeishuChannel = {
+  type: 'feishu',
+  getRawChannel: getChannel,
+  connect, addReaction, removeReaction,
+  streamReplyLive, streamReply, sendText, sendMedia, appendCardFooter,
+};
+
+module.exports = { getChannel, connect, addReaction, removeReaction, streamReply, streamReplyLive, appendCardFooter, sendText, sendMedia, FeishuChannel };
