@@ -41,13 +41,30 @@ function getStatus() {
     : uptime < 3600 ? `${Math.floor(uptime / 60)}m${uptime % 60}s`
     : `${Math.floor(uptime / 3600)}h${Math.floor((uptime % 3600) / 60)}m`;
 
-  const channels = all.map((c) => ({
-    id: c.channel,
-    name: CHANNEL_NAMES[c.channel] || c.channel,
-    icon: CHANNEL_ICONS[c.channel] || '📡',
-    connected: c.connected,
-    current: c.channel === 'feishu',
-  }));
+  // 渠道引导信息 (平台链接/凭据/步骤, 供设置页直接配置入口)
+  let channelGuides = {};
+  try {
+    const { CHANNELS } = require('../commands/channels');
+    channelGuides = CHANNELS;
+  } catch (e) {}
+
+  const channels = all.map((c) => {
+    const guide = channelGuides[c.channel] || {};
+    return {
+      id: c.channel,
+      name: CHANNEL_NAMES[c.channel] || c.channel,
+      icon: CHANNEL_ICONS[c.channel] || '📡',
+      connected: c.connected,
+      current: c.channel === 'feishu',
+      // 配置入口信息
+      platform: guide.platform || '',
+      credential: guide.credential || [],
+      steps: guide.steps || [],
+      env: guide.env || [],
+      difficulty: guide.difficulty || '',
+      note: guide.note || '',
+    };
+  });
 
   // 飞书详情保持兼容 (feishu 字段, 来自 feishuState)
   const feishu = { ...feishuState };

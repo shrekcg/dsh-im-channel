@@ -149,7 +149,14 @@ window.__ModuleLoader__.load({
 						] })
 						: react_jsx_runtime.jsx("div", { className: "lb-empty", children: sel.connected
 							? "已连接 ✅ (详细状态见 /status)"
-							: "未配置。配置方法: 在飞书对话发 /channels add " + sel.id + " 查看接入步骤。" })
+							: react_jsx_runtime.jsx("div", { children: [
+								react_jsx_runtime.jsx("p", { className: "lb-sub", children: "未配置。点击下方入口开始接入:" }),
+								sel.platform ? react_jsx_runtime.jsx("a", { className: "lb-btn", href: sel.platform, target: "_blank", rel: "noreferrer", style: { display: "inline-block", textDecoration: "none", marginTop: 8 }, children: "🔗 打开 " + sel.name + " 平台" }) : null,
+								(sel.steps || []).map((s, i) => react_jsx_runtime.jsx("div", { style: { marginTop: 6, fontSize: 13, color: "var(--dsw-alias-label-secondary)" }, children: (i + 1) + ". " + s }, i)),
+								(sel.credential || []).length > 0 ? react_jsx_runtime.jsx("div", { style: { marginTop: 10, fontSize: 12, color: "var(--dsw-alias-label-tertiary)" }, children: "需要配置: " + sel.credential.join("、") + " → 填入环境变量 " + (sel.env || []).join(", ") }) : null,
+								sel.note ? react_jsx_runtime.jsx("div", { className: "lb-health", style: { marginTop: 10 }, children: "💡 " + sel.note }) : null,
+								react_jsx_runtime.jsx("div", { style: { marginTop: 10, fontSize: 12, color: "var(--dsw-alias-label-tertiary)" }, children: "配置后重启 bridge 生效: launchctl restart com.dsh.lark-bridge" })
+							] }) })
 				] })
 			] });
 		}
