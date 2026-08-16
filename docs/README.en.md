@@ -40,7 +40,6 @@ Aligned with the capabilities of the [OpenClaw Feishu plugin](https://github.com
 | DingTalk 📱 | ✅ Supported | Stream mode long-connection |
 | Slack 🟣 | ✅ Supported | Socket Mode |
 | Discord 🎮 | ✅ Supported | Gateway (bot token) |
-| QQ 🐧 | ⚠️ Basic | Official Bot API (SDK needed for receive) |
 
 > Send `/channels` in Feishu to see all channels and setup steps, or `/channels add <channel>` for a guide.
 

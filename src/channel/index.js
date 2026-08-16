@@ -7,7 +7,7 @@
  * 飞书渠道保持原 API (getChannel/addReaction/streamReply 等), 供 index.js 消息流水线使用。
  * 其他渠道通过 getAdapter(type) 获取适配器实例。
  *
- * 渠道类型: feishu | telegram | dingtalk | slack | discord | qq
+ * 渠道类型: feishu | telegram | dingtalk | slack | discord
  */
 
 const { ChannelAdapter } = require('./base');
@@ -20,7 +20,6 @@ const adapterRegistry = {
   dingtalk: () => require('./dingtalk').DingTalkAdapter,
   slack: () => require('./slack').SlackAdapter,
   discord: () => require('./discord').DiscordAdapter,
-  qq: () => require('./qq').QQAdapter,
 };
 
 // 实例缓存: key = `${type}:${accountId}`

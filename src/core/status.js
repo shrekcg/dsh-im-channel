@@ -86,7 +86,6 @@ function getStatus() {
 const CHANNEL_NAMES = {
   feishu: '飞书',
   dingtalk: '钉钉',
-  qq: 'QQ',
   slack: 'Slack',
   telegram: 'Telegram',
   discord: 'Discord',
@@ -95,7 +94,6 @@ const CHANNEL_NAMES = {
 const CHANNEL_ICONS = {
   feishu: '📘',
   dingtalk: '📱',
-  qq: '🐧',
   slack: '🟣',
   telegram: '✈️',
   discord: '🎮',

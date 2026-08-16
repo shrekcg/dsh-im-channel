@@ -559,7 +559,6 @@ async function main() {
     ['dingtalk', 'DINGTALK_APP_KEY'],
     ['slack', 'SLACK_BOT_TOKEN'],
     ['discord', 'DISCORD_BOT_TOKEN'],
-    ['qq', 'QQ_APP_ID'],
   ];
   for (const [type, envKey] of EXTRA_CHANNELS) {
     const enabled = process.env[envKey] || config[`${type}Enabled`];

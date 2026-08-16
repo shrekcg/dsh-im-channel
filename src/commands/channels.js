@@ -92,20 +92,6 @@ const CHANNELS = {
     env: ['DISCORD_BOT_TOKEN'],
     note: '需要 discord.js 依赖做 Gateway 接收',
   },
-  qq: {
-    name: 'QQ',
-    icon: '🐧',
-    difficulty: '⭐⭐⭐',
-    platform: 'https://q.qq.com',
-    credential: ['AppID', 'AppSecret'],
-    steps: [
-      '打开 https://q.qq.com 用手机 QQ 扫码登录',
-      '创建 Bot → 填写资料 → 获取 AppID / AppSecret',
-      '配置消息接收 (WebSocket gateway)',
-    ],
-    env: ['QQ_APP_ID', 'QQ_APP_SECRET'],
-    note: '官方 Bot API, 扫码登录平台但创建仍需手动',
-  },
 };
 
 /** 列出所有渠道及状态 */

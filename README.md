@@ -40,7 +40,6 @@
 | 钉钉 📱 | ✅ 支持 | Stream 模式长连接 |
 | Slack 🟣 | ✅ 支持 | Socket Mode |
 | Discord 🎮 | ✅ 支持 | Gateway（bot token） |
-| QQ 🐧 | ⚠️ 基础支持 | 官方 Bot API（接收需 SDK） |
 
 > 在飞书里发 `/channels` 查看全部渠道及接入步骤，或 `/channels add <渠道>` 获取引导。
 
