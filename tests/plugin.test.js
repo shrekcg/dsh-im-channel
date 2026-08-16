@@ -200,14 +200,14 @@ test('status: 初始飞书未连接', () => {
   statusMod.updateFeishu({ connected: false, botName: '', accounts: [] });
   const s = statusMod.getStatus();
   assert.strictEqual(s.feishu.connected, false);
-  assert.strictEqual(s.channels.length, 8);
+  assert.strictEqual(s.channels.length, 6);
   assert.strictEqual(s.channels[0].id, 'feishu');
 });
 
 test('status: 全渠道位 (钉钉/QQ/微信/Slack/Telegram/Discord/WhatsApp)', () => {
   const s = statusMod.getStatus();
   const ids = s.channels.map((c) => c.id);
-  for (const id of ['feishu','dingtalk','qq','wechat','slack','telegram','discord','whatsapp']) {
+  for (const id of ['feishu','dingtalk','qq','slack','telegram','discord']) {
     assert.ok(ids.includes(id), `缺 ${id}`);
   }
 });
@@ -262,10 +262,10 @@ test('slash: 未知命令返回提示', async () => {
 // ---------- 渠道向导 ----------
 const { handleChannelsCommand, CHANNELS } = require('../src/commands/channels');
 
-test('channels: 列出全部 8 渠道', async () => {
+test('channels: 列出全部 6 渠道', async () => {
   const r = await handleChannelsCommand([]);
   assert.strictEqual(r.handled, true);
-  for (const id of ['feishu','telegram','dingtalk','slack','discord','qq','wechat','whatsapp']) {
+  for (const id of ['feishu','telegram','dingtalk','slack','discord','qq']) {
     assert.ok(r.reply.includes(CHANNELS[id].name), `缺 ${id}`);
   }
 });
@@ -290,7 +290,7 @@ test('channels: 中文渠道名匹配', async () => {
 const { getAdapter, getAllStatus } = require('../src/channel');
 
 test('channel: 适配器注册表完整', () => {
-  const types = ['feishu','telegram','dingtalk','slack','discord','qq','wechat','whatsapp'];
+  const types = ['feishu','telegram','dingtalk','slack','discord','qq'];
   for (const t of types) {
     assert.doesNotThrow(() => require(`../src/channel/${t}`), `${t} 加载失败`);
   }
@@ -302,9 +302,9 @@ test('channel: Telegram 无 token 连接报错', async () => {
   await assert.rejects(() => inst.connect(), /TELEGRAM_BOT_TOKEN/);
 });
 
-test('channel: getAllStatus 返回 8 渠道', () => {
+test('channel: getAllStatus 返回 6 渠道', () => {
   const all = getAllStatus();
-  assert.strictEqual(all.length, 8);
+  assert.strictEqual(all.length, 6);
 });
 
 test('channel: 飞书兼容 API 仍工作', () => {

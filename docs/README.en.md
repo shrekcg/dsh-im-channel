@@ -41,8 +41,6 @@ Aligned with the capabilities of the [OpenClaw Feishu plugin](https://github.com
 | Slack 🟣 | ✅ Supported | Socket Mode |
 | Discord 🎮 | ✅ Supported | Gateway (bot token) |
 | QQ 🐧 | ⚠️ Basic | Official Bot API (SDK needed for receive) |
-| WeChat 💬 | ⚠️ Experimental | wechaty personal (unofficial, risk) |
-| WhatsApp 🟢 | ⚠️ Experimental | Cloud API / whatsapp-web.js |
 
 > Send `/channels` in Feishu to see all channels and setup steps, or `/channels add <channel>` for a guide.
 

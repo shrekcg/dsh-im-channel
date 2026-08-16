@@ -70,22 +70,18 @@ const CHANNEL_NAMES = {
   feishu: '飞书',
   dingtalk: '钉钉',
   qq: 'QQ',
-  wechat: '微信',
   slack: 'Slack',
   telegram: 'Telegram',
   discord: 'Discord',
-  whatsapp: 'WhatsApp',
 };
 
 const CHANNEL_ICONS = {
   feishu: '📘',
   dingtalk: '📱',
   qq: '🐧',
-  wechat: '💬',
   slack: '🟣',
   telegram: '✈️',
   discord: '🎮',
-  whatsapp: '🟢',
 };
 
 // ---------- 兼容旧 API (index.js 仍调用) ----------

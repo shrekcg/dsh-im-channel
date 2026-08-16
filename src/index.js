@@ -560,8 +560,6 @@ async function main() {
     ['slack', 'SLACK_BOT_TOKEN'],
     ['discord', 'DISCORD_BOT_TOKEN'],
     ['qq', 'QQ_APP_ID'],
-    ['wechat', 'WECHAT_MODE'],
-    ['whatsapp', 'WHATSAPP_MODE'],
   ];
   for (const [type, envKey] of EXTRA_CHANNELS) {
     const enabled = process.env[envKey] || config[`${type}Enabled`];

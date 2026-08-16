@@ -106,32 +106,6 @@ const CHANNELS = {
     env: ['QQ_APP_ID', 'QQ_APP_SECRET'],
     note: '官方 Bot API, 扫码登录平台但创建仍需手动',
   },
-  wechat: {
-    name: '微信',
-    icon: '💬',
-    difficulty: '⭐⭐⭐⭐⭐ (实验)',
-    platform: 'https://wechaty.js.org (个人号) / mp.weixin.qq.com (公众号)',
-    credential: ['(个人号) 扫码登录 / (公众号) AppID+AppSecret'],
-    steps: [
-      '⚠️ 个人号: 使用 wechaty 扫码登录 (非官方协议, 有风控风险)',
-      '公众号/服务号: mp.weixin.qq.com 创建应用 → 基本配置拿 AppID/AppSecret',
-    ],
-    env: ['WECHAT_MODE'],
-    note: '实验渠道, 个人号有封号风险, 建议公众号',
-  },
-  whatsapp: {
-    name: 'WhatsApp',
-    icon: '🟢',
-    difficulty: '⭐⭐⭐⭐ (实验)',
-    platform: 'https://developers.facebook.com (Cloud API) / whatsapp-web.js',
-    credential: ['Cloud API: Token + Phone / Web: 扫码'],
-    steps: [
-      '官方 Cloud API: Meta 开发者平台创建应用 → 审核 → 拿 token (需企业验证)',
-      '个人号: whatsapp-web.js 扫码 (非官方, 有风控风险)',
-    ],
-    env: ['WHATSAPP_MODE', 'WHATSAPP_TOKEN', 'WHATSAPP_PHONE'],
-    note: 'Cloud API 需审核; web 模式实验性',
-  },
 };
 
 /** 列出所有渠道及状态 */
