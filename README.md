@@ -8,6 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](package.json)
 [![Tools](https://img.shields.io/badge/MCP%20tools-40-orange.svg)](src/tools/mcp-server.js)
+[![Market](https://img.shields.io/badge/awesome--dsh--plugin-on%20market-7c3aed.svg)](https://awesome-dsh-plugin.com/p/shrekcg/dsh-lark-bridge/)
 
 [![English](https://img.shields.io/badge/English-Readme-3370ff.svg?style=for-the-badge)](docs/README.en.md) [![中文](https://img.shields.io/badge/中文-说明-00b42a.svg?style=for-the-badge)](README.md)
 
