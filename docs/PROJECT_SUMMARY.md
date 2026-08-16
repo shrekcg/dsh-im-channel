@@ -1,4 +1,4 @@
-# DSH ↔ Feishu/Lark Bridge 项目总结
+# DSH ↔ IM Channel 项目总结
 
 > 本文档是对整个项目的完整梳理，供后续回顾、维护、推广使用。
 > 最后更新：2026-08-15
@@ -7,7 +7,7 @@
 
 ## 一、项目是什么
 
-**DSH ↔ Feishu/Lark Bridge** 是一个把 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH，AI Agent 运行时）接入飞书/Lark 的**完整双向通道插件**。用户可以在飞书里像使用原生对话一样与 DSH agent 交互：私聊、群聊、话题，agent 能调用 40 个飞书对象工具直接操作飞书（文档/表格/日历/任务/消息等），并支持持久记忆、流式卡片回复、思考过程展示等完整体验。
+**DSH ↔ IM Channel** 是一个把 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH，AI Agent 运行时）接入飞书/Telegram/钉钉/Slack/Discord 的**统一多渠道 IM 通道插件**。用户可以在飞书里像使用原生对话一样与 DSH agent 交互：私聊、群聊、话题，agent 能调用 40 个飞书对象工具直接操作飞书（文档/表格/日历/任务/消息等），并支持持久记忆、流式卡片回复、思考过程展示等完整体验。
 
 **定位**：对齐 OpenClaw 飞书官方插件（[larksuite/openclaw-lark](https://github.com/larksuite/openclaw-lark)）的能力，但基于 DSH 而非 OpenClaw。
 

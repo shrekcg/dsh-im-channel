@@ -11,7 +11,7 @@ dsh-im-channel 已提交到 **awesome-dsh-plugin**（DSH 官方社区插件市�
 | 线上 registry | `https://awesome-dsh-plugin.com/plugins.json` (839+ 插件) |
 | 我们的 PR | [#1114](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/1114) |
 | 收录条目 | `shrekcg__dsh-im-channel.yml` (category: notify) |
-| npm 包 | `dsh-feishu-channel`（待 `npm publish`，包名已验证可用）|
+| npm 包 | `dsh-im-channel`（待 `npm publish`）|
 | 市场页面 | `https://awesome-dsh-plugin.com/p/shrekcg/dsh-im-channel/`（合并后生效）|
 
 ## 当前进度
