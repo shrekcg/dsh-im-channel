@@ -43,6 +43,8 @@ const commentHandler = require('./inbound/comment');
 const mention = require('./outbound/mention');
 const { adaptiveStep } = require('./core/adaptive');
 const pacing = require('./core/pacing');
+const status = require('./core/status');
+const { startStatusServer } = require('./http-status');
 
 const BRIDGE_DIR = __dirname.replace(/\/src$/, '');
 
@@ -344,6 +346,11 @@ async function main() {
   log('=== DSH-Lark Bridge (模块化版) 启动 ===');
   log('账号数: ' + accountIds.length, accountIds.join(', '));
 
+  // 启动 HTTP 状态服务 (渠道状态页 + JSON 接口)
+  const statusPort = config.statusPort || parseInt(process.env.STATUS_PORT || '8899', 10);
+  startStatusServer(statusPort);
+  log(`[status] 渠道状态页: http://127.0.0.1:${statusPort}`);
+
   for (const accountId of accountIds) {
     const accConfig = { ...config, ...config.accounts[accountId] };
     log(`[account:${accountId}] 启动 appId=${accConfig.appId} requireMention=${accConfig.requireMention} groupPolicy=${accConfig.groupPolicy}`);
@@ -351,6 +358,7 @@ async function main() {
     const ch = channel.getChannel(accConfig, accountId);
 
     ch.on('message', async (msg) => {
+      status.noteMessage(); // 记录最近消息时间 (状态页展示)
       try {
         await processMessage(accConfig, msg, accountId);
       } catch (e) {
@@ -445,14 +453,26 @@ async function main() {
     });
     ch.on('error', (e) => log(`[account:${accountId}][channel] error:`, e.message));
     ch.on('reconnecting', () => log(`[account:${accountId}] reconnecting...`));
-    ch.on('reconnected', () => log(`[account:${accountId}] reconnected`));
+    ch.on('reconnected', () => {
+      log(`[account:${accountId}] reconnected`);
+      status.updateFeishu({ connected: true });
+    });
 
     try {
       await ch.connect();
       log(`[account:${accountId}] connected, bot=`, JSON.stringify(ch.botIdentity));
+      // 更新渠道状态 (供 HTTP 状态页展示)
+      const bot = ch.botIdentity || {};
+      status.updateFeishu({
+        connected: true,
+        botName: bot.name || bot.openId || '飞书机器人',
+        botOpenId: bot.openId || '',
+        appId: accConfig.appId,
+      });
     } catch (e) {
       // 单个账号连接失败不影响其他账号
       log(`[account:${accountId}] 连接失败:`, e.message, '(继续其他账号)');
+      status.updateFeishu({ connected: false });
     }
   }
   log('所有账号处理完成, 等待飞书消息...');

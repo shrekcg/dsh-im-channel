@@ -22,6 +22,7 @@ const DEFAULTS = {
   respondToMentionAll: true,
   typingChunkMs: 250,               // 卡片打字机每块间隔
   typingChunkSize: 8,               // 每块字符数
+  statusPort: 8899,                   // HTTP 状态服务端口
   streamThrottleMs: 60,             // 流式节流时间阈值 (ms)
   streamThrottleChars: 3,          // 流式节流字符阈值 (攒够即刷新)
   dshTimeoutMs: 300000,             // DSH 处理超时
