@@ -285,3 +285,45 @@ test('channels: 中文渠道名匹配', async () => {
   const r = await handleChannelsCommand(['add', '钉钉']);
   assert.ok(r.reply.includes('DINGTALK_APP_KEY'));
 });
+
+// ---------- 渠道适配器 ----------
+const { getAdapter, getAllStatus } = require('../src/channel');
+
+test('channel: 适配器注册表完整', () => {
+  const types = ['feishu','telegram','dingtalk','slack','discord','qq','wechat','whatsapp'];
+  for (const t of types) {
+    assert.doesNotThrow(() => require(`../src/channel/${t}`), `${t} 加载失败`);
+  }
+});
+
+test('channel: Telegram 无 token 连接报错', async () => {
+  const { TelegramAdapter } = require('../src/channel/telegram');
+  const inst = new TelegramAdapter({}, 'test');
+  await assert.rejects(() => inst.connect(), /TELEGRAM_BOT_TOKEN/);
+});
+
+test('channel: getAllStatus 返回 8 渠道', () => {
+  const all = getAllStatus();
+  assert.strictEqual(all.length, 8);
+});
+
+test('channel: 飞书兼容 API 仍工作', () => {
+  const ch = require('../src/channel');
+  assert.strictEqual(typeof ch.sendText, 'function');
+  assert.strictEqual(typeof ch.streamReplyLive, 'function');
+  assert.strictEqual(typeof ch.getAdapter, 'function');
+});
+
+test('channel: Telegram 消息归一化', () => {
+  const { TelegramAdapter } = require('../src/channel/telegram');
+  const inst = new TelegramAdapter({ telegramBotToken: 'fake' }, 'test');
+  let got = null;
+  inst.on('message', (m) => { got = m; });
+  inst._handleMessage({ message_id: 42, chat: { id: 123, type: 'private' }, from: { id: 7, first_name: 'Bob' }, text: 'hi' });
+  assert.ok(got);
+  assert.strictEqual(got.messageId, '42');
+  assert.strictEqual(got.chatId, '123');
+  assert.strictEqual(got.chatType, 'p2p');
+  assert.strictEqual(got.text, 'hi');
+  assert.strictEqual(got.senderName, 'Bob');
+});
