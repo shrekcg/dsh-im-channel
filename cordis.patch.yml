@@ -2,4 +2,4 @@
 # installable via `dsh plugin add` (required by the awesome-dsh-plugin market).
 - insert:
     - id: lark-bridge
-      name: 'dsh-lark-bridge'
+      name: 'dsh-feishu-channel'

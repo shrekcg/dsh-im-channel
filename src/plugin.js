@@ -11,9 +11,9 @@
  * Usage in a profile bundle patch:
  *   - insert:
  *       - id: lark-bridge
- *         name: 'dsh-lark-bridge'
+ *         name: 'dsh-feishu-channel'
  */
-module.exports.name = 'dsh-lark-bridge';
+module.exports.name = 'dsh-feishu-channel';
 
 module.exports.apply = function (ctx, config) {
   const { spawn } = require('child_process');

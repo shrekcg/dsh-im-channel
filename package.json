@@ -1,7 +1,7 @@
 {
-  "name": "dsh-lark-bridge",
+  "name": "dsh-feishu-channel",
   "version": "0.2.0",
-  "description": "DSH ↔ Feishu/Lark bidirectional bridge: persistent conversation sessions, topic-isolated context, group chat, streaming cards, reactions and media — a complete OpenClaw-style channel for DeepSeek Harness.",
+  "description": "Bidirectional Feishu/Lark channel for DeepSeek Harness: persistent conversations, true streaming, 40 MCP Feishu tools, slash commands, IM-bot status tab.",
   "main": "src/plugin.js",
   "scripts": {
     "start": "node src/index.js",
@@ -13,7 +13,8 @@
     "uninstall-bridge": "node scripts/install.js uninstall",
     "status": "node scripts/install.js status",
     "features": "node src/commands/features.js",
-    "features:json": "node src/commands/features.js --json"
+    "features:json": "node src/commands/features.js --json",
+    "prepublishOnly": "npm test"
   },
   "keywords": [
     "feishu",
@@ -43,5 +44,26 @@
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shrekcg/dsh-lark-bridge.git"
+  },
+  "homepage": "https://github.com/shrekcg/dsh-lark-bridge#readme",
+  "bugs": {
+    "url": "https://github.com/shrekcg/dsh-lark-bridge/issues"
+  },
+  "files": [
+    "src/",
+    "scripts/",
+    "dsh-lark-session/",
+    "web-plugin/",
+    "cordis.patch.yml",
+    "config.example.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }
