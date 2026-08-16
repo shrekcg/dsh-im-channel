@@ -4,11 +4,11 @@
 
 **A unified IM channel connecting DeepSeek Harness to Feishu, DingTalk, Telegram, Slack, Discord, QQ and more**
 
-[![CI](https://github.com/shrekcg/dsh-lark-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/shrekcg/dsh-lark-bridge/actions/workflows/ci.yml)
+[![CI](https://github.com/shrekcg/dsh-im-channel/actions/workflows/ci.yml/badge.svg)](https://github.com/shrekcg/dsh-im-channel/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](../package.json)
 [![Tools](https://img.shields.io/badge/MCP%20tools-40-orange.svg)](../src/tools/mcp-server.js)
-[![Market](https://img.shields.io/badge/awesome--dsh--plugin-on%20market-7c3aed.svg)](https://awesome-dsh-plugin.com/p/shrekcg/dsh-lark-bridge/)
+[![Market](https://img.shields.io/badge/awesome--dsh--plugin-on%20market-7c3aed.svg)](https://awesome-dsh-plugin.com/p/shrekcg/dsh-im-channel/)
 
 [![English](https://img.shields.io/badge/English-Readme-3370ff.svg?style=for-the-badge)](README.en.md) [![中文](https://img.shields.io/badge/中文-说明-00b42a.svg?style=for-the-badge)](../README.md)
 
@@ -126,8 +126,8 @@ Type commands directly in Feishu chat (instant response, no AI call consumed):
 
 ```bash
 # 1. Clone
-git clone https://github.com/shrekcg/dsh-lark-bridge.git
-cd dsh-lark-bridge
+git clone https://github.com/shrekcg/dsh-im-channel.git
+cd dsh-im-channel
 
 # 2. Install dependencies
 npm install
@@ -243,7 +243,7 @@ See [docs/ARCHITECTURE.md](ARCHITECTURE.md) for details.
 ## 📁 Project Structure
 
 ```
-dsh-lark-bridge/
+dsh-im-channel/
 ├── src/
 │   ├── index.js              # entry (multi-account message pipeline)
 │   ├── config.js             # configuration

@@ -175,7 +175,7 @@
 
 | 项 | 状态 |
 |---|---|
-| **GitHub** | ✅ https://github.com/shrekcg/dsh-lark-bridge （公开） |
+| **GitHub** | ✅ https://github.com/shrekcg/dsh-im-channel （公开） |
 | **版本** | 0.2.0（首个开源版） |
 | **License** | MIT |
 | **测试** | 44 个单元测试全部通过 |
@@ -213,7 +213,7 @@
 
 - [ ] 后台事件订阅激活验证（reaction/comment/card.action）
 - [ ] 仓库改公开 + 补充 README 徽章
-- [ ] npm 发布（`dsh-lark-bridge`）
+- [ ] npm 发布（`dsh-im-channel`）
 - [ ] 真·流式输出（token 级）
 - [ ] 图片视觉理解（依赖 DSH 多模态模型）
 - [ ] 企业级群权限治理（RBAC）
