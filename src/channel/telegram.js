@@ -79,6 +79,7 @@ class TelegramAdapter extends ChannelAdapter {
   _handleMessage(m) {
     const text = m.text || m.caption || '';
     const isGroup = m.chat.type === 'group' || m.chat.type === 'supergroup';
+    this._lastChatId = String(m.chat.id); // 记录会话, 供 addReaction 使用
     const normalized = {
       messageId: String(m.message_id),
       chatId: String(m.chat.id),
