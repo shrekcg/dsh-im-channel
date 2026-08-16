@@ -228,3 +228,32 @@ test('status: 记录最近消息时间', () => {
   const s = statusMod.getStatus();
   assert.ok(s.feishu.lastMessageAt);
 });
+
+// ---------- 斜杠命令 ----------
+const slash = require('../src/commands/slash');
+
+test('slash: 识别斜杠命令', () => {
+  assert.strictEqual(slash.isSlashCommand('/help'), true);
+  assert.strictEqual(slash.isSlashCommand('/new 额外参数'), true);
+  assert.strictEqual(slash.isSlashCommand('普通消息'), false);
+  assert.strictEqual(slash.isSlashCommand(''), false);
+  assert.strictEqual(slash.isSlashCommand('/1abc'), false);
+});
+
+test('slash: 解析命令和参数', () => {
+  assert.deepStrictEqual(slash.parseCommand('/help'), { cmd: 'help', args: [] });
+  assert.deepStrictEqual(slash.parseCommand('/model deepseek-v4-flash'), { cmd: 'model', args: ['deepseek-v4-flash'] });
+  assert.deepStrictEqual(slash.parseCommand('/new x y'), { cmd: 'new', args: ['x', 'y'] });
+});
+
+test('slash: 命令清单完整', () => {
+  for (const cmd of ['help', 'new', 'compact', 'model', 'status', 'tools', 'features', 'doctor']) {
+    assert.ok(slash.COMMANDS[cmd], `缺少 /${cmd}`);
+  }
+});
+
+test('slash: 未知命令返回提示', async () => {
+  const r = await slash.handleSlashCommand({}, {}, '/unknown', 'sess1', () => {});
+  assert.strictEqual(r.handled, true);
+  assert.ok(r.reply.includes('未知命令'));
+});

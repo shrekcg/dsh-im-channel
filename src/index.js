@@ -45,6 +45,7 @@ const { adaptiveStep } = require('./core/adaptive');
 const pacing = require('./core/pacing');
 const status = require('./core/status');
 const { startStatusServer } = require('./http-status');
+const slash = require('./commands/slash');
 
 const BRIDGE_DIR = __dirname.replace(/\/src$/, '');
 
@@ -203,6 +204,18 @@ async function processMessage(config, msg, accountId) {
   if (!content && !mediaText) {
     log('[process] 空内容, 跳过');
     return;
+  }
+
+  // 斜杠命令拦截: /new /compact /model /status 等 (不消耗 agent 调用)
+  if (slash.isSlashCommand(content)) {
+    const sessionId = session.deriveSessionId(msg, accountId);
+    const result = await slash.handleSlashCommand(config, msg, content, sessionId, log);
+    if (result.handled) {
+      const { text: cmdText } = mention.convertMentions(result.reply || '');
+      await channel.sendText(config, msg.chatId, cmdText, { replyTo: msg.messageId });
+      log(`[slash] 已回复 /${slash.parseCommand(content).cmd}`);
+      return;
+    }
   }
 
   // 体验: 立即加"思考中"表情; 用 try/finally 保证任何路径都移除 (防残留)
