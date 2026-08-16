@@ -78,6 +78,7 @@
 | 功能清单 | `npm run features` 查看各能力配置状态 |
 | 权限管理 | 自动检测缺失权限，生成一键申请链接 |
 | CI | GitHub Actions 自动测试 + MCP 冒烟验证 |
+| 渠道状态页 | 内置 HTTP 状态页，实时查看飞书在线/账号/健康（`http://127.0.0.1:8899`）|
 
 ---
 
@@ -154,6 +155,7 @@ npm run features      # 功能清单
 
 ```bash
 npm start                # 启动 bridge
+# 状态页: 打开 http://127.0.0.1:8899 (飞书在线状态/账号/健康)
 npm run setup            # 初始化向导
 npm run doctor           # 诊断 (--fix 自动修复)
 npm run features         # 功能配置清单

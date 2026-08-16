@@ -78,6 +78,7 @@ Exposes **40 Feishu tools** via [Model Context Protocol](https://modelcontextpro
 | Feature checklist | `npm run features` — see each capability's config status |
 | Permission management | Auto-detects missing scopes, generates one-click apply links |
 | CI | GitHub Actions: unit tests + MCP smoke verification |
+| Channel status page | Built-in HTTP status page — see Feishu online/account/health in real time (`http://127.0.0.1:8899`) |
 
 ---
 
@@ -154,6 +155,7 @@ Just ask in natural language:
 
 ```bash
 npm start                # start the bridge
+# Status page: open http://127.0.0.1:8899 (Feishu online status / account / health)
 npm run setup            # setup wizard
 npm run doctor           # diagnostics (--fix auto-repair)
 npm run features         # feature checklist

@@ -192,3 +192,39 @@ test('pacing: takeChunk 多块累积到限制', () => {
 test('pacing: takeChunk 空队列返回空串', () => {
   assert.strictEqual(pacing.takeChunk([], 0), '');
 });
+
+// ---------- 渠道状态管理 ----------
+const statusMod = require('../src/core/status');
+
+test('status: 初始飞书未连接', () => {
+  const s = statusMod.getStatus();
+  assert.strictEqual(s.feishu.connected, false);
+  assert.strictEqual(s.channels.length, 4);
+  assert.strictEqual(s.channels[0].id, 'feishu');
+});
+
+test('status: 预留渠道位 (钉钉/QQ/微信)', () => {
+  const s = statusMod.getStatus();
+  const ids = s.channels.map((c) => c.id);
+  assert.ok(ids.includes('dingtalk'));
+  assert.ok(ids.includes('qq'));
+  assert.ok(ids.includes('wechat'));
+});
+
+test('status: 更新飞书状态后正确反映', () => {
+  statusMod.updateFeishu({ connected: true, botName: '测试bot', botOpenId: 'ou_test' });
+  const s = statusMod.getStatus();
+  assert.strictEqual(s.feishu.connected, true);
+  assert.strictEqual(s.feishu.online, 1);
+  assert.strictEqual(s.feishu.accounts.length, 1);
+  assert.strictEqual(s.feishu.accounts[0].name, '测试bot');
+  assert.ok(s.feishu.health.includes('运行正常'));
+  // 恢复
+  statusMod.updateFeishu({ connected: false, botName: '', accounts: [] });
+});
+
+test('status: 记录最近消息时间', () => {
+  statusMod.noteMessage();
+  const s = statusMod.getStatus();
+  assert.ok(s.feishu.lastMessageAt);
+});
