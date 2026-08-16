@@ -1,7 +1,7 @@
 {
   "name": "dsh-im-channel",
-  "version": "0.2.0",
-  "description": "Multi-channel IM bridge for DeepSeek Harness: Feishu, Telegram, DingTalk, Slack, Discord, QQ — persistent sessions, true streaming, slash commands",
+  "version": "0.2.1",
+  "description": "Multi-channel IM bridge for DeepSeek Harness: Feishu, Telegram, DingTalk, Slack, Discord — persistent sessions, true streaming, slash commands",
   "main": "src/plugin.js",
   "scripts": {
     "start": "node src/index.js",
@@ -37,8 +37,8 @@
     "@modelcontextprotocol/sdk": "^1.30.0"
   },
   "bin": {
-    "dsh-lark-bridge": "src/index.js",
-    "dsh-lark-mcp": "src/tools/mcp-server.js"
+    "dsh-im-channel": "src/index.js",
+    "dsh-im-channel-mcp": "src/tools/mcp-server.js"
   },
   "dsh": {
     "bundle": {
@@ -47,11 +47,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shrekcg/dsh-lark-bridge.git"
+    "url": "git+https://github.com/shrekcg/dsh-im-channel.git"
   },
-  "homepage": "https://github.com/shrekcg/dsh-lark-bridge#readme",
+  "homepage": "https://github.com/shrekcg/dsh-im-channel#readme",
   "bugs": {
-    "url": "https://github.com/shrekcg/dsh-lark-bridge/issues"
+    "url": "https://github.com/shrekcg/dsh-im-channel/issues"
   },
   "files": [
     "src/",
