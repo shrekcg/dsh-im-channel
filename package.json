@@ -2,7 +2,7 @@
   "name": "dsh-lark-bridge",
   "version": "0.2.0",
   "description": "DSH ↔ Feishu/Lark bidirectional bridge: persistent conversation sessions, topic-isolated context, group chat, streaming cards, reactions and media — a complete OpenClaw-style channel for DeepSeek Harness.",
-  "main": "src/index.js",
+  "main": "src/plugin.js",
   "scripts": {
     "start": "node src/index.js",
     "test": "node --test tests/*.test.js",
@@ -22,7 +22,8 @@
     "deepseek",
     "bridge",
     "chatbot",
-    "openclaw"
+    "openclaw",
+    "dsh-plugin"
   ],
   "author": "DSH Community",
   "license": "MIT",
@@ -37,5 +38,10 @@
   "bin": {
     "dsh-lark-bridge": "src/index.js",
     "dsh-lark-mcp": "src/tools/mcp-server.js"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
   }
 }
