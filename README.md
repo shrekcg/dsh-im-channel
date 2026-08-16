@@ -1,8 +1,8 @@
 <div align="center">
 
-# DSH ↔ Feishu/Lark Bridge
+# DSH ↔ IM Channel
 
-**将 DeepSeek Harness 接入飞书/Lark 的双向智能通道**
+**将 DeepSeek Harness 接入飞书、钉钉、Telegram、Slack、Discord、QQ 等 IM 渠道的统一通道**
 
 [![CI](https://github.com/shrekcg/dsh-lark-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/shrekcg/dsh-lark-bridge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -18,7 +18,7 @@
 
 ## 项目简介
 
-**DSH ↔ Feishu/Lark Bridge** 是一个把 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH，AI Agent 运行时）接入飞书 / Lark 的完整双向通道插件。它在飞书里为你的 AI 助手提供「原生应用」般的完整体验：
+**DSH ↔ IM Channel** 是一个把 [DeepSeek Harness](https://github.com/deepseek-ai)（DSH，AI Agent 运行时）接入多个 IM 渠道（飞书/钉钉/Telegram/Slack/Discord/QQ 等）的统一双向通道插件。它在飞书里为你的 AI 助手提供「原生应用」般的完整体验：
 
 - 💬 **持久对话**：跨消息上下文记忆，话题隔离，群聊/私聊
 - ⌨️ **真流式输出**：边生成边显示，平滑打字机效果

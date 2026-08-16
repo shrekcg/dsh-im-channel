@@ -1,7 +1,7 @@
 {
-  "name": "dsh-feishu-channel",
+  "name": "dsh-im-channel",
   "version": "0.2.0",
-  "description": "Bidirectional Feishu/Lark channel for DeepSeek Harness: persistent conversations, true streaming, 40 MCP Feishu tools, slash commands, IM-bot status tab.",
+  "description": "Multi-channel IM bridge for DeepSeek Harness: Feishu, Telegram, DingTalk, Slack, Discord, QQ — persistent sessions, true streaming, slash commands",
   "main": "src/plugin.js",
   "scripts": {
     "start": "node src/index.js",

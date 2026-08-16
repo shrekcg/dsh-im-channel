@@ -1,8 +1,8 @@
 <div align="center">
 
-# DSH ↔ Feishu/Lark Bridge
+# DSH ↔ IM Channel
 
-**A bidirectional AI channel connecting DeepSeek Harness to Feishu/Lark**
+**A unified IM channel connecting DeepSeek Harness to Feishu, DingTalk, Telegram, Slack, Discord, QQ and more**
 
 [![CI](https://github.com/shrekcg/dsh-lark-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/shrekcg/dsh-lark-bridge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
@@ -18,7 +18,7 @@
 
 ## Introduction
 
-**DSH ↔ Feishu/Lark Bridge** is a complete bidirectional channel plugin that connects [DeepSeek Harness](https://github.com/deepseek-ai) (DSH, an AI agent runtime) to Feishu / Lark. It gives your AI assistant a "first-class app" experience inside Feishu:
+**DSH ↔ IM Channel** is a unified multi-channel plugin that connects [DeepSeek Harness](https://github.com/deepseek-ai) (DSH, an AI agent runtime) to multiple IM platforms (Feishu, DingTalk, Telegram, Slack, Discord, QQ...). It gives your AI assistant a "first-class app" experience inside Feishu:
 
 - 💬 **Persistent conversations**: cross-message context memory, topic isolation, group & DM chat
 - ⌨️ **True streaming output**: token-by-token display with a smooth typewriter effect
