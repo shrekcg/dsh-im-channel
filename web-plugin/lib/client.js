@@ -73,6 +73,7 @@ window.__ModuleLoader__.load({
 			const [status, setStatus] = react.useState(null);
 			const [error, setError] = react.useState("");
 			const [loading, setLoading] = react.useState(true);
+			const [selected, setSelected] = react.useState("feishu");
 
 			const load = react.useCallback(async () => {
 				try {
@@ -98,37 +99,58 @@ window.__ModuleLoader__.load({
 				] });
 			}
 			const f = status.feishu;
+			const sel = status.channels.find((c) => c.id === selected) || status.channels[0];
+			const selDetail = status.all ? (status.all.find((a) => a.channel === sel.id) || {}) : {};
 			return react_jsx_runtime.jsx("div", { className: "lb-section", children: [
 				react_jsx_runtime.jsx("h2", { className: "lb-head", children: "IM 机器人" }),
 				react_jsx_runtime.jsx("p", { className: "lb-sub", children: "通过扫码/长连接把 DeepSeek Harness 接入第三方渠道" }),
-				react_jsx_runtime.jsx("div", { className: "lb-channels", children: status.channels.map((c) => react_jsx_runtime.jsx(ChannelRow, { c }, c.id)) }),
-				react_jsx_runtime.jsx("div", { style: { marginTop: 8 }, children: [
-					react_jsx_runtime.jsx("span", { className: "lb-badge", children: f.online + " / 1 在线" }),
-					react_jsx_runtime.jsx("span", { style: { marginLeft: 8, fontSize: 12, color: "var(--dsw-alias-label-tertiary)" }, children: "App ID: " + f.appId })
-				] }),
-				react_jsx_runtime.jsx("h3", { className: "lb-head", style: { marginTop: 14 }, children: "已接入的飞书账号" }),
-				react_jsx_runtime.jsx("p", { className: "lb-sub", children: (f.accounts || []).length + " 个" }),
-				(f.accounts || []).length === 0
-					? react_jsx_runtime.jsx("div", { className: "lb-empty", children: "暂无已接入账号" })
-					: f.accounts.map((a) => react_jsx_runtime.jsx("div", { className: "lb-card", children: [
-						react_jsx_runtime.jsx("div", { className: "lb-acchead", children: [
-							react_jsx_runtime.jsx("span", { className: "lb-accname", children: a.name }),
-							react_jsx_runtime.jsx("span", { className: "lb-accstatus", children: "🟢 " + a.status })
-						] }),
-						react_jsx_runtime.jsx("div", { className: "lb-accid", children: "账号 ID: " + a.id }),
-						react_jsx_runtime.jsx("dl", { className: "lb-detail", children: [
-							react_jsx_runtime.jsx("dt", { children: "消息通道" }), react_jsx_runtime.jsx("dd", { children: a.messageChannel }),
-							react_jsx_runtime.jsx("dt", { children: "最近检查" }), react_jsx_runtime.jsx("dd", { children: a.lastChecked || "—" }),
-							react_jsx_runtime.jsx("dt", { children: "最近消息" }), react_jsx_runtime.jsx("dd", { children: f.lastMessageAt || "—" }),
-							react_jsx_runtime.jsx("dt", { children: "运行时长" }), react_jsx_runtime.jsx("dd", { children: f.uptimeText || "—" }),
-							react_jsx_runtime.jsx("dt", { children: "进程 PID" }), react_jsx_runtime.jsx("dd", { children: String(f.pid) })
-						] }),
-						react_jsx_runtime.jsx("div", { className: "lb-health", children: a.health }),
-						react_jsx_runtime.jsx("div", { className: "lb-actions", children: [
-							react_jsx_runtime.jsx("button", { className: "lb-btn", onClick: () => { fetch("http://127.0.0.1:8899/api/check", { method: "POST" }).then(() => load()); }, children: "检查连接" }),
-							react_jsx_runtime.jsx("button", { className: "lb-btn danger", onClick: () => { if (confirm("确定移除飞书接入? bridge 将停止。")) fetch("http://127.0.0.1:8899/api/remove", { method: "POST" }); }, children: "移除接入" })
+				react_jsx_runtime.jsx("div", { className: "lb-channels", children: status.channels.map((c) => react_jsx_runtime.jsx("div", {
+					className: "lb-channel" + (c.id === selected ? " current" : "") + (c.connected ? "" : " offline"),
+					onClick: () => setSelected(c.id),
+					style: { cursor: "pointer" },
+					children: [
+						react_jsx_runtime.jsx("span", { className: "lb-ic", children: c.icon }),
+						react_jsx_runtime.jsx("div", { children: [
+							react_jsx_runtime.jsx("div", { className: "lb-cname", children: c.name }),
+							react_jsx_runtime.jsx("div", { className: "lb-cstate", children: c.connected ? "🟢 在线" : "⚪ 未配置" })
 						] })
-					] }, a.id))
+					]
+				}, c.id)) }),
+				react_jsx_runtime.jsx("div", { style: { marginTop: 14 }, children: [
+					react_jsx_runtime.jsx("h3", { className: "lb-head", children: sel.icon + " " + sel.name }),
+					(sel.id === "feishu")
+						? react_jsx_runtime.jsx("div", { children: [
+							react_jsx_runtime.jsx("div", { style: { display: "flex", alignItems: "center", gap: 8, margin: "8px 0" }, children: [
+								react_jsx_runtime.jsx("span", { className: "lb-badge", children: f.online + " / 1 在线" }),
+								react_jsx_runtime.jsx("span", { style: { fontSize: 12, color: "var(--dsw-alias-label-tertiary)" }, children: "App ID: " + f.appId })
+							] }),
+							react_jsx_runtime.jsx("p", { className: "lb-sub", children: (f.accounts || []).length + " 个已接入账号" }),
+							(f.accounts || []).length === 0
+								? react_jsx_runtime.jsx("div", { className: "lb-empty", children: "暂无已接入账号" })
+								: f.accounts.map((a) => react_jsx_runtime.jsx("div", { className: "lb-card", children: [
+									react_jsx_runtime.jsx("div", { className: "lb-acchead", children: [
+										react_jsx_runtime.jsx("span", { className: "lb-accname", children: a.name }),
+										react_jsx_runtime.jsx("span", { className: "lb-accstatus", children: "🟢 " + a.status })
+									] }),
+									react_jsx_runtime.jsx("div", { className: "lb-accid", children: "账号 ID: " + a.id }),
+									react_jsx_runtime.jsx("dl", { className: "lb-detail", children: [
+										react_jsx_runtime.jsx("dt", { children: "消息通道" }), react_jsx_runtime.jsx("dd", { children: a.messageChannel }),
+										react_jsx_runtime.jsx("dt", { children: "最近检查" }), react_jsx_runtime.jsx("dd", { children: a.lastChecked || "—" }),
+										react_jsx_runtime.jsx("dt", { children: "最近消息" }), react_jsx_runtime.jsx("dd", { children: f.lastMessageAt || "—" }),
+										react_jsx_runtime.jsx("dt", { children: "运行时长" }), react_jsx_runtime.jsx("dd", { children: f.uptimeText || "—" }),
+										react_jsx_runtime.jsx("dt", { children: "进程 PID" }), react_jsx_runtime.jsx("dd", { children: String(f.pid) })
+									] }),
+									react_jsx_runtime.jsx("div", { className: "lb-health", children: a.health }),
+									react_jsx_runtime.jsx("div", { className: "lb-actions", children: [
+										react_jsx_runtime.jsx("button", { className: "lb-btn", onClick: () => { fetch("http://127.0.0.1:8899/api/check", { method: "POST" }).then(() => load()); }, children: "检查连接" }),
+										react_jsx_runtime.jsx("button", { className: "lb-btn danger", onClick: () => { if (confirm("确定移除飞书接入? bridge 将停止。")) fetch("http://127.0.0.1:8899/api/remove", { method: "POST" }); }, children: "移除接入" })
+									] })
+								] }, a.id))
+						] })
+						: react_jsx_runtime.jsx("div", { className: "lb-empty", children: sel.connected
+							? "已连接 ✅ (详细状态见 /status)"
+							: "未配置。配置方法: 在飞书对话发 /channels add " + sel.id + " 查看接入步骤。" })
+				] })
 			] });
 		}
 
