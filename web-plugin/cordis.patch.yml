@@ -1,0 +1,7 @@
+# dsh-lark-bridge-web bundle patch: inserts the IM-bot settings tab plugin
+# into the web profile roster. Applied as a profile bundle layer over dsh-base.
+# Activate with:
+#   dsh plugin --profile web add link:<path-to-this-package>
+- insert:
+    - id: lark-bridge-web
+      name: 'dsh-lark-bridge-web'

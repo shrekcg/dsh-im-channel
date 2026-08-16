@@ -145,6 +145,17 @@ function startStatusServer(port = 8899) {
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    // CORS: 允许 DSH web (3080) 跨端口读取状态
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    // OPTIONS 预检
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 204;
+      res.end();
+      return;
+    }
 
     if (req.method === 'GET' && url.pathname === '/') {
       const status = getStatus();
