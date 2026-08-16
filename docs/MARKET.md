@@ -11,6 +11,18 @@ dsh-lark-bridge 已提交到 **awesome-dsh-plugin**（DSH 官方社区插件市�
 | 线上 registry | `https://awesome-dsh-plugin.com/plugins.json` (839+ 插件) |
 | 我们的 PR | [#1114](https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/1114) |
 | 收录条目 | `shrekcg__dsh-lark-bridge.yml` (category: notify) |
+| npm 包 | `dsh-feishu-channel`（待 `npm publish`，包名已验证可用）|
+| 市场页面 | `https://awesome-dsh-plugin.com/p/shrekcg/dsh-lark-bridge/`（合并后生效）|
+
+## 当前进度
+
+- [x] 满足市场收录要求（dsh.bundle / 49 commits / topic / 真实代码）
+- [x] 提交 PR #1114（Submission gate pass ✅ + CI pass ✅）
+- [x] README 市场徽章（中英）
+- [x] npm 发布准备（`npm pack` 验证通过）
+- [ ] **PR #1114 合并**（等待维护者，已评论催办）
+- [ ] **npm publish**（需本机 `npm login` 后执行 `npm publish`）
+- [ ] 合并后验证市场可见 + 社区推广
 
 ## 提交要求（已全部满足）
 
