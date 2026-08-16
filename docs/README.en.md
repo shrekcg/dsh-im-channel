@@ -9,7 +9,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](../package.json)
 [![Tools](https://img.shields.io/badge/MCP%20tools-40-orange.svg)](../src/tools/mcp-server.js)
 
-[中文文档](../README.md)
+[![English](https://img.shields.io/badge/English-Readme-3370ff.svg?style=for-the-badge)](README.en.md) [![中文](https://img.shields.io/badge/中文-说明-00b42a.svg?style=for-the-badge)](../README.md)
 
 </div>
 
@@ -79,6 +79,23 @@ Exposes **40 Feishu tools** via [Model Context Protocol](https://modelcontextpro
 | Permission management | Auto-detects missing scopes, generates one-click apply links |
 | CI | GitHub Actions: unit tests + MCP smoke verification |
 | Channel status page | Built-in HTTP status page — see Feishu online/account/health in real time (`http://127.0.0.1:8899`) |
+| IM bot settings tab | An **IM Bots** tab inside DSH settings → Plugins, showing channel status (`web-plugin/`) |
+| Slash commands | Use `/new` `/compact` `/model` `/status` etc. directly in Feishu chat |
+
+### ⌨️ Slash Commands
+
+Type commands directly in Feishu chat (instant response, no AI call consumed):
+
+| Command | Description |
+|---|---|
+| `/help` | List all available commands |
+| `/new` / `/clear` | Start a new conversation (clear current session context) |
+| `/compact` | Compact the current session (reduce context) |
+| `/model [name]` | View / switch model (e.g. `/model deepseek-v4-flash`) |
+| `/status` / `/state` | View current status (model / session / tools / uptime) |
+| `/tools` | List available Feishu tools (40) |
+| `/features` | View the feature checklist |
+| `/doctor` | Run diagnostics |
 
 ---
 

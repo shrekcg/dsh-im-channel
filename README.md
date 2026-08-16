@@ -9,7 +9,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](package.json)
 [![Tools](https://img.shields.io/badge/MCP%20tools-40-orange.svg)](src/tools/mcp-server.js)
 
-**English** · [English README](docs/README.en.md)
+[![English](https://img.shields.io/badge/English-Readme-3370ff.svg?style=for-the-badge)](docs/README.en.md) [![中文](https://img.shields.io/badge/中文-说明-00b42a.svg?style=for-the-badge)](README.md)
 
 </div>
 
@@ -79,6 +79,23 @@
 | 权限管理 | 自动检测缺失权限，生成一键申请链接 |
 | CI | GitHub Actions 自动测试 + MCP 冒烟验证 |
 | 渠道状态页 | 内置 HTTP 状态页，实时查看飞书在线/账号/健康（`http://127.0.0.1:8899`）|
+| IM 机器人设置页 | DSH 设置页「插件」内新增 **IM 机器人** tab，展示渠道状态（`web-plugin/`）|
+| 斜杠命令 | 飞书对话内直接使用 `/new` `/compact` `/model` `/status` 等命令 |
+
+### ⌨️ 斜杠命令
+
+在飞书对话中直接输入命令（不消耗 AI 调用，即时响应）：
+
+| 命令 | 说明 |
+|---|---|
+| `/help` | 显示所有可用命令 |
+| `/new` / `/clear` | 开启新对话（清空当前会话上下文） |
+| `/compact` | 压缩当前会话（减少上下文） |
+| `/model [name]` | 查看 / 切换模型（如 `/model deepseek-v4-flash`） |
+| `/status` / `/state` | 查看当前状态（模型/会话/工具/运行时长） |
+| `/tools` | 列出可用飞书工具（40 个） |
+| `/features` | 查看功能配置清单 |
+| `/doctor` | 运行诊断 |
 
 ---
 
