@@ -31,6 +31,21 @@
 
 ## ✨ 功能特性
 
+### 🌐 支持渠道
+
+| 渠道 | 状态 | 接入方式 |
+|---|---|---|
+| 飞书 📘 | ✅ 完整支持 | WebSocket 长连接（开放平台建应用） |
+| Telegram ✈️ | ✅ 支持 | BotFather 聊天内创建（最简单） |
+| 钉钉 📱 | ✅ 支持 | Stream 模式长连接 |
+| Slack 🟣 | ✅ 支持 | Socket Mode |
+| Discord 🎮 | ✅ 支持 | Gateway（bot token） |
+| QQ 🐧 | ⚠️ 基础支持 | 官方 Bot API（接收需 SDK） |
+| 微信 💬 | ⚠️ 实验性 | wechaty 个人号（非官方，有风控风险） |
+| WhatsApp 🟢 | ⚠️ 实验性 | Cloud API / whatsapp-web.js |
+
+> 在飞书里发 `/channels` 查看全部渠道及接入步骤，或 `/channels add <渠道>` 获取引导。
+
 ### 💬 对话体验
 | 特性 | 说明 |
 |---|---|

@@ -31,6 +31,21 @@ Aligned with the capabilities of the [OpenClaw Feishu plugin](https://github.com
 
 ## ✨ Features
 
+### 🌐 Supported Channels
+
+| Channel | Status | Setup |
+|---|---|---|
+| Feishu 📘 | ✅ Full | WebSocket long-connection (Open Platform) |
+| Telegram ✈️ | ✅ Supported | BotFather in-chat (easiest) |
+| DingTalk 📱 | ✅ Supported | Stream mode long-connection |
+| Slack 🟣 | ✅ Supported | Socket Mode |
+| Discord 🎮 | ✅ Supported | Gateway (bot token) |
+| QQ 🐧 | ⚠️ Basic | Official Bot API (SDK needed for receive) |
+| WeChat 💬 | ⚠️ Experimental | wechaty personal (unofficial, risk) |
+| WhatsApp 🟢 | ⚠️ Experimental | Cloud API / whatsapp-web.js |
+
+> Send `/channels` in Feishu to see all channels and setup steps, or `/channels add <channel>` for a guide.
+
 ### 💬 Conversation
 | Feature | Description |
 |---|---|
