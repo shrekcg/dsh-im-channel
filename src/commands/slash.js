@@ -32,6 +32,7 @@ const COMMANDS = {
   tools: { desc: '列出可用飞书工具', usage: '/tools' },
   features: { desc: '查看功能配置清单', usage: '/features' },
   doctor: { desc: '运行诊断', usage: '/doctor' },
+  channels: { desc: '渠道接入向导 (如 /channels add telegram)', usage: '/channels [add <渠道>]' },
 };
 
 /** 是否是斜杠命令 */
@@ -229,6 +230,11 @@ async function handleSlashCommand(config, msg, text, sessionId, log = () => {}) 
       const out = (r.stdout || '').trim();
       const tail = out.split('\n').slice(-15).join('\n');
       return { handled: true, reply: '**诊断结果**\n\n```\n' + tail + '\n```' };
+    }
+
+    case 'channels': {
+      const { handleChannelsCommand } = require('./channels');
+      return handleChannelsCommand(args);
     }
 
     default:

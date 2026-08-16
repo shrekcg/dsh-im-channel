@@ -258,3 +258,30 @@ test('slash: 未知命令返回提示', async () => {
   assert.strictEqual(r.handled, true);
   assert.ok(r.reply.includes('未知命令'));
 });
+
+// ---------- 渠道向导 ----------
+const { handleChannelsCommand, CHANNELS } = require('../src/commands/channels');
+
+test('channels: 列出全部 8 渠道', async () => {
+  const r = await handleChannelsCommand([]);
+  assert.strictEqual(r.handled, true);
+  for (const id of ['feishu','telegram','dingtalk','slack','discord','qq','wechat','whatsapp']) {
+    assert.ok(r.reply.includes(CHANNELS[id].name), `缺 ${id}`);
+  }
+});
+
+test('channels: telegram 引导含 BotFather', async () => {
+  const r = await handleChannelsCommand(['add', 'telegram']);
+  assert.ok(r.reply.includes('BotFather'));
+  assert.ok(r.reply.includes('TELEGRAM_BOT_TOKEN'));
+});
+
+test('channels: 未知渠道提示', async () => {
+  const r = await handleChannelsCommand(['add', 'nope']);
+  assert.ok(r.reply.includes('未知渠道'));
+});
+
+test('channels: 中文渠道名匹配', async () => {
+  const r = await handleChannelsCommand(['add', '钉钉']);
+  assert.ok(r.reply.includes('DINGTALK_APP_KEY'));
+});
