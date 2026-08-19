@@ -31,9 +31,9 @@ const DEFAULTS = {
   logLevel: 'info',
   showModel: '',                    // 回复 footer 是否显示模型名 (如 'deepseek-v4-flash')
   reactionNotifications: 'off',     // off | own | all (表情反馈)
-  groupPolicy: 'open',              // open | allowlist | closed
+  groupPolicy: 'closed',            // 安全默认: open | allowlist | closed (未配置=拒绝, 需显式开启)
   groupAllowFrom: [],               // 群聊白名单 (open_id 列表)
-  dmPolicy: 'open',                 // open | allowlist | closed
+  dmPolicy: 'closed',               // 安全默认: open | allowlist | closed (未配置=拒绝, 需显式开启)
   dmAllowFrom: [],                  // 私聊白名单
   allowBots: false,                 // bot-at-bot: false | true | 'mentions'
   groups: {},                       // 按群细粒度配置: { oc_xxx: { requireMention: true } }
