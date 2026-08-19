@@ -50,11 +50,13 @@ function getStatus() {
 
   const channels = all.map((c) => {
     const guide = channelGuides[c.channel] || {};
+    // 飞书连接状态以 feishuState 为准 (index.js 实时更新), 其他渠道用适配器状态
+    const connected = c.channel === 'feishu' ? feishuState.connected : c.connected;
     return {
       id: c.channel,
       name: CHANNEL_NAMES[c.channel] || c.channel,
       icon: CHANNEL_ICONS[c.channel] || '📡',
-      connected: c.connected,
+      connected,
       current: c.channel === 'feishu',
       // 配置入口信息
       platform: guide.platform || '',

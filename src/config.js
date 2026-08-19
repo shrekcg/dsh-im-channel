@@ -72,6 +72,7 @@ function loadFromEnv() {
     logLevel: process.env.BRIDGE_LOG_LEVEL || '',
     reactionNotifications: process.env.REACTION_NOTIFICATIONS || '',
     groupPolicy: process.env.GROUP_POLICY || '',
+    dmPolicy: process.env.DM_POLICY || '',
     groupAllowFrom: (process.env.GROUP_ALLOW_FROM || '').split(',').map((s) => s.trim()).filter(Boolean),
     dmAllowFrom: (process.env.DM_ALLOW_FROM || '').split(',').map((s) => s.trim()).filter(Boolean),
     allowBots: process.env.ALLOW_BOTS === 'true' ? true : process.env.ALLOW_BOTS === 'mentions' ? 'mentions' : undefined,

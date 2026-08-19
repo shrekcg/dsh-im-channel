@@ -22,10 +22,10 @@ window.__ModuleLoader__.load({
 
 		// Inline styles (kept simple; DSH css-module pipeline optional)
 		const css = `
-			.lb-section{width:100%;max-width:760px;color:var(--dsw-alias-label-primary);display:flex;flex-direction:column;gap:14px}
+			.lb-section{width:100%;max-width:860px;color:var(--dsw-alias-label-primary)}.lb-layout{display:flex;gap:16px;align-items:flex-start}.lb-sidebar{flex:0 0 200px;position:sticky;top:0}.lb-main{flex:1;min-width:0}
 			.lb-head{font-size:14px;font-weight:600;margin:0}
 			.lb-sub{color:var(--dsw-alias-label-tertiary);font-size:13px;margin:0}
-			.lb-channels{display:flex;flex-direction:column;gap:8px}
+			.lb-channels{display:flex;flex-direction:column;gap:6px}
 			.lb-channel{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--dsw-alias-border-l2);border-radius:8px}
 			.lb-channel.current{border-color:var(--dsw-alias-state-business-primary);background:color-mix(in srgb,var(--dsw-alias-state-business-primary) 8%,transparent)}
 			.lb-channel.offline{opacity:.55}
@@ -103,20 +103,24 @@ window.__ModuleLoader__.load({
 			const selDetail = status.all ? (status.all.find((a) => a.channel === sel.id) || {}) : {};
 			return react_jsx_runtime.jsx("div", { className: "lb-section", children: [
 				react_jsx_runtime.jsx("h2", { className: "lb-head", children: "IM 机器人" }),
-				react_jsx_runtime.jsx("p", { className: "lb-sub", children: "通过扫码/长连接把 DeepSeek Harness 接入第三方渠道" }),
-				react_jsx_runtime.jsx("div", { className: "lb-channels", children: status.channels.map((c) => react_jsx_runtime.jsx("div", {
-					className: "lb-channel" + (c.id === selected ? " current" : "") + (c.connected ? "" : " offline"),
-					onClick: () => setSelected(c.id),
-					style: { cursor: "pointer" },
-					children: [
-						react_jsx_runtime.jsx("span", { className: "lb-ic", children: c.icon }),
-						react_jsx_runtime.jsx("div", { children: [
-							react_jsx_runtime.jsx("div", { className: "lb-cname", children: c.name }),
-							react_jsx_runtime.jsx("div", { className: "lb-cstate", children: c.connected ? "🟢 在线" : "⚪ 未配置" })
-						] })
-					]
-				}, c.id)) }),
-				react_jsx_runtime.jsx("div", { style: { marginTop: 14 }, children: [
+				react_jsx_runtime.jsx("p", { className: "lb-sub", children: "选择左侧渠道查看状态或开始接入" }),
+				react_jsx_runtime.jsx("div", { className: "lb-layout", children: [
+					react_jsx_runtime.jsx("div", { className: "lb-sidebar", children: [
+						react_jsx_runtime.jsx("div", { className: "lb-channels", children: status.channels.map((c) => react_jsx_runtime.jsx("div", {
+							className: "lb-channel" + (c.id === selected ? " current" : "") + (c.connected ? "" : " offline"),
+							onClick: () => setSelected(c.id),
+							style: { cursor: "pointer" },
+							children: [
+								react_jsx_runtime.jsx("span", { className: "lb-ic", children: c.icon }),
+								react_jsx_runtime.jsx("div", { children: [
+									react_jsx_runtime.jsx("div", { className: "lb-cname", children: c.name }),
+									react_jsx_runtime.jsx("div", { className: "lb-cstate", children: c.connected ? "🟢 在线" : "⚪ 未配置" })
+								] })
+							]
+						}, c.id)) })
+					] }),
+					react_jsx_runtime.jsx("div", { className: "lb-main", children: [
+						react_jsx_runtime.jsx("div", { style: { marginTop: 0 }, children: [
 					react_jsx_runtime.jsx("h3", { className: "lb-head", children: sel.icon + " " + sel.name }),
 					(sel.id === "feishu")
 						? react_jsx_runtime.jsx("div", { children: [
@@ -157,6 +161,8 @@ window.__ModuleLoader__.load({
 								sel.note ? react_jsx_runtime.jsx("div", { className: "lb-health", style: { marginTop: 10 }, children: "💡 " + sel.note }) : null,
 								react_jsx_runtime.jsx("div", { style: { marginTop: 10, fontSize: 12, color: "var(--dsw-alias-label-tertiary)" }, children: "配置后重启 bridge 生效: launchctl restart com.dsh.lark-bridge" })
 							] }) })
+						] })
+					] })
 				] })
 			] });
 		}
