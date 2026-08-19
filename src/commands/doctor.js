@@ -221,6 +221,21 @@ function main() {
   report('图片视觉理解', visionOk, visionOk ? '视觉识别插件已安装' : '未安装', '安装视觉识别插件');
   console.log();
 
+  // ---------- 8. 安全策略 ----------
+  console.log('[8] 安全策略');
+  const cfg = config || {};
+  // dmPolicy/groupPolicy 显式配置检查 (防止漏配导致误拒绝或误开放)
+  const dmSet = cfg.dmPolicy && cfg.dmPolicy !== 'closed';
+  const gpSet = cfg.groupPolicy && cfg.groupPolicy !== 'closed';
+  report('私聊策略 (dmPolicy)', dmSet, cfg.dmPolicy || 'closed (安全默认)', '如需开放: DM_POLICY=open');
+  report('群聊策略 (groupPolicy)', gpSet, cfg.groupPolicy || 'closed (安全默认)', '如需开放: GROUP_POLICY=open');
+  // 若开放但无白名单提示
+  if ((cfg.dmPolicy === 'allowlist' && !cfg.dmAllowFrom?.length) ||
+      (cfg.groupPolicy === 'allowlist' && !cfg.groupAllowFrom?.length)) {
+    report('白名单配置', false, 'allowlist 模式但白名单为空 = 拒绝所有人', '配置 DM_ALLOW_FROM/GROUP_ALLOW_FROM');
+  }
+  console.log();
+
   // ---------- 汇总 ----------
   console.log('=== 诊断结果 ===');
   console.log(`通过: ${passed}  失败: ${failed}`);

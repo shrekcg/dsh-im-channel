@@ -327,3 +327,49 @@ test('channel: Telegram 消息归一化', () => {
   assert.strictEqual(got.text, 'hi');
   assert.strictEqual(got.senderName, 'Bob');
 });
+
+// ---------- 防御: config env 解析 (防 DM_POLICY 遗漏回归) ----------
+const { loadConfig } = require('../src/config');
+
+test('config: env 能正确设置 dmPolicy/groupPolicy', () => {
+  const tmpDir = '/tmp/dsh-cfg-env-test';
+  require('fs').mkdirSync(tmpDir, { recursive: true });
+  // 确保无 config.json 干扰
+  process.env.DM_POLICY = 'open';
+  process.env.GROUP_POLICY = 'allowlist';
+  process.env.LARK_APP_SECRET = 'test-secret'; // 满足账号要求
+  try {
+    const cfg = loadConfig(tmpDir);
+    assert.strictEqual(cfg.dmPolicy, 'open');
+    assert.strictEqual(cfg.groupPolicy, 'allowlist');
+  } finally {
+    delete process.env.DM_POLICY;
+    delete process.env.GROUP_POLICY;
+    delete process.env.LARK_APP_SECRET;
+  }
+});
+
+test('config: 未配置时默认 closed (安全默认)', () => {
+  const tmpDir = '/tmp/dsh-cfg-safe-test';
+  require('fs').mkdirSync(tmpDir, { recursive: true });
+  process.env.LARK_APP_SECRET = 'test-secret';
+  try {
+    const cfg = loadConfig(tmpDir);
+    assert.strictEqual(cfg.dmPolicy, 'closed');
+    assert.strictEqual(cfg.groupPolicy, 'closed');
+  } finally {
+    delete process.env.LARK_APP_SECRET;
+  }
+});
+
+// ---------- 防御: 状态一致性 (channels vs feishu 详情) ----------
+test('status: channels[feishu].connected 与 feishu 详情一致', () => {
+  const statusMod = require('../src/core/status');
+  // 模拟飞书已连接
+  statusMod.updateFeishu({ connected: true, botName: '测试', botOpenId: 'ou_t' });
+  const s = statusMod.getStatus();
+  const chF = s.channels.find((c) => c.id === 'feishu');
+  assert.strictEqual(chF.connected, s.feishu.connected, 'channels 与 feishu 详情不一致');
+  // 恢复
+  statusMod.updateFeishu({ connected: false, botName: '', accounts: [] });
+});
