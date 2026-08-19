@@ -141,3 +141,20 @@ npm run features:json    # JSON 输出 (供程序读取)
 | 图片视觉理解 | 发图片无法识别内容 | 安装 vision 插件 (visionpower) + 配置多模态模型 |
 | 多账号 | 单账号 | config.json 配置 accounts |
 | 真流式 | 卡片打字机(处理后播放) | 待开发 (规划中) |
+
+## 安全默认（重要）
+
+从 v0.2.1 起，**未配置时默认拒绝**：
+
+| 配置 | 默认 | 说明 |
+|---|---|---|
+| `GROUP_POLICY` | `closed` | 群聊未配置 = 拒绝（需显式设为 `open`/`allowlist`）|
+| `DM_POLICY` | `closed` | 私聊未配置 = 拒绝（需显式设为 `open`/`allowlist`）|
+
+安全默认确保：安装后不读文档的操作者不会被意外暴露（任何人都能私聊/群聊 bot）。
+
+如需开放，显式配置：
+```bash
+GROUP_POLICY=open DM_POLICY=open npm start
+# 或写入 config.json: {"groupPolicy":"open","dmPolicy":"open"}
+```
