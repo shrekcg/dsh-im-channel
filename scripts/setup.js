@@ -31,11 +31,23 @@ function run(cmd, args) {
   return { code: r.status, out: r.stdout || '', err: r.stderr || '' };
 }
 
+/** 动态定位 lark-cli (env → PATH → 常见位置), 不硬编码本机路径 */
+function findLarkCli() {
+  if (process.env.LARK_CLI && fs.existsSync(process.env.LARK_CLI)) return process.env.LARK_CLI;
+  // 从 PATH 查找
+  const which = run('which', ['lark-cli']);
+  if (which.code === 0 && which.out.trim()) return which.out.trim();
+  // 常见安装位置
+  const candidates = ['/opt/homebrew/bin/lark-cli', '/usr/local/bin/lark-cli', `${process.env.HOME}/.local/bin/lark-cli`];
+  return candidates.find((p) => fs.existsSync(p)) || '/opt/homebrew/bin/lark-cli';
+}
+
 async function step1_prereqs() {
   console.log('\n=== 步骤 1/6: 前置环境检查 ===');
+  const larkCli = findLarkCli();
   const checks = [
     ['Node.js', () => run('node', ['--version']).code === 0],
-    ['lark-cli', () => fs.existsSync('/opt/homebrew/bin/lark-cli')],
+    ['lark-cli', () => fs.existsSync(larkCli)],
     ['dsh', () => fs.existsSync(path.join(os.homedir(), '.local', 'bin', 'dsh'))],
     ['npm 依赖', () => fs.existsSync(path.join(BRIDGE_DIR, 'node_modules'))],
   ];
@@ -110,14 +122,15 @@ async function step3_permissions() {
 async function step4_auth() {
   console.log('\n=== 步骤 4/6: 用户授权 ===');
   console.log('需要授权以用户身份操作飞书 (读文档/日历/任务等)');
-  const r = run('/opt/homebrew/bin/lark-cli', ['auth', 'login', '--domain', 'all', '--no-wait', '--json']);
+  const larkCli = findLarkCli();
+  const r = run(larkCli, ['auth', 'login', '--domain', 'all', '--no-wait', '--json']);
   try {
     const d = JSON.parse(r.out);
     console.log('请打开以下链接完成授权 (或用 lark-cli auth qrcode 生成二维码):');
     console.log(`  ${d.verification_url}`);
     const done = await ask('\n授权完成后按回车继续...');
     // 尝试完成授权
-    const r2 = run('/opt/homebrew/bin/lark-cli', ['auth', 'login', '--device-code', d.device_code]);
+    const r2 = run(larkCli, ['auth', 'login', '--device-code', d.device_code]);
     if (r2.out.includes('授权成功') || r2.out.includes('OK')) {
       console.log('✅ 授权成功!');
       return true;

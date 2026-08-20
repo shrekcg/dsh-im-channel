@@ -82,10 +82,15 @@ function install() {
     } catch (e) {}
 
     let plist = fs.readFileSync(PLIST_SRC, 'utf8');
-    // 替换所有旧路径 (修复: 原正则含字面~永不匹配)
-    const escapedDir = BRIDGE_DIR.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    plist = plist.replace(/<string>\/Users[^<]*dsh-lark-bridge[^<]*<\/string>/g,
-      `<string>${BRIDGE_DIR.replace(/&/g, '&amp;')}</string>`);
+    // 替换路径: 匹配 plist 中任意含桥目录的 /Users 路径 (兼容旧名 dsh-lark-bridge 与新名 dsh-im-channel)
+    const pathRe = /<string>(\/Users[^<]*(?:dsh-lark-bridge|dsh-im-channel)[^<]*)<\/string>/g;
+    plist = plist.replace(pathRe, (m, p) => {
+      // 仅替换指向桥目录下的路径 (src/index.js / bridge.log / bridge.err.log)
+      if (/dsh-(lark-bridge|im-channel)\/(src\/index\.js|bridge\.(log|err\.log))/.test(p)) {
+        return `<string>${BRIDGE_DIR.replace(/&/g, '&amp;')}/${p.split('dsh-')[1].split('/').slice(1).join('/')}</string>`;
+      }
+      return m;
+    });
     // 注入 appSecret (模板占位符 → 实际值)
     if (appSecret) {
       plist = plist.replace('__LARK_APP_SECRET__', appSecret);
@@ -102,7 +107,7 @@ function install() {
   // 4. 验证
   console.log('[4/4] 验证安装...');
   const lc = run('/bin/launchctl', ['list']);
-  const pg = run('/bin/pgrep', ['-f', 'dsh-lark-bridge/src/index.js']);
+  const pg = run('/bin/pgrep', ['-f', 'dsh-im-channel/src/index.js']);
   const running = (lc.code === 0 && /com\.dsh\.lark-bridge/.test(lc.out)) || pg.code === 0;
   console.log(running ? '   ✅ 服务运行中' : '   ⚠️ 服务未运行 (运行 npm run doctor 排查)');
 
@@ -135,7 +140,7 @@ function status() {
   const plistOk = fs.existsSync(PLIST_DEST);
   console.log(`launchd plist: ${plistOk ? '✅ 已注册' : '❌ 未注册'}`);
   const lc = run('/bin/launchctl', ['list']);
-  const pg = run('/bin/pgrep', ['-f', 'dsh-lark-bridge/src/index.js']);
+  const pg = run('/bin/pgrep', ['-f', 'dsh-im-channel/src/index.js']);
   const running = (lc.code === 0 && /com\.dsh\.lark-bridge/.test(lc.out)) || pg.code === 0;
   console.log(`launchd 运行: ${running ? '✅ 运行中' : '❌ 未运行'}`);
   const mcpOk = fs.existsSync(path.join(BRIDGE_DIR, 'node_modules', '@modelcontextprotocol', 'sdk'));
