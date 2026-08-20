@@ -168,14 +168,17 @@ window.__ModuleLoader__.load({
 		}
 
 		function apply(ctx) {
-			const t = (key) => ({ "tab": "IM 机器人" }[key] || key);
 			const NS = "dsh-lark-bridge-web";
 			ctx.effect(() => ctx.locale?.register?.(NS, { zh: { tab: "IM 机器人" }, en: { tab: "IM Bots" } }), "dsh-lark-bridge-web: locale");
+			// 用 locale.bind 生效 i18n (en 环境显示 "IM Bots")
+			const t = ctx.locale?.bind ? ctx.locale.bind(NS) : (NS ? (key) => ({ "tab": "IM 机器人" }[key] || key) : (key) => ({ "tab": "IM 机器人" }[key] || key));
+			// 兼容: bind 不存在时回退硬编码
+			const tr = typeof t === 'function' ? t : (key) => ({ "tab": "IM 机器人" }[key] || key);
 			ctx.slots.inject("settings.plugins.tab", () => ctx.slots.register({
 				name: "settings.plugins.tab",
 				id: "im-bot",
 				order: 30,
-				label: () => t("tab"),
+				label: () => tr("tab"),
 				locale: NS,
 				inject: () => ({})
 			}, LarkStatusTab));

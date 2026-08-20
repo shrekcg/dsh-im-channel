@@ -28,7 +28,7 @@
     }
   },
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "build": "echo \"client.js 为手写 ModuleLoader 格式, 无需构建; 改 src/ 需 tsdown\"",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
