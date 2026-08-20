@@ -57,13 +57,32 @@ function main() {
   console.log('=== DSH-Lark Bridge 诊断 ===');
   console.log(`模式: ${FIX ? '诊断 + 自动修复' : '仅诊断'}\n`);
 
+  // 加载私有凭据 env 文件 (与 launchd 行为一致, doctor 直跑时可拿到完整配置)
+  try {
+    const envFile = path.join(os.homedir(), '.dsh', 'lark-bridge.env');
+    if (fs.existsSync(envFile)) {
+      const lines = fs.readFileSync(envFile, 'utf8').split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eq = trimmed.indexOf('=');
+        if (eq > 0) {
+          const k = trimmed.slice(0, eq).trim();
+          const v = trimmed.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
+          if (k && !process.env[k]) process.env[k] = v;
+        }
+      }
+    }
+  } catch (e) {}
+
   // ---------- 1. 配置 ----------
   console.log('[1] 配置检查');
   // 从 launchd plist 补充环境变量 (doctor 直接运行时可能没有)
   // 简单解析 plist 中的环境变量 (XML 文本提取)
+  // 注意: 不能以 LARK_APP_SECRET 为前置条件 (.env 可能已提供 secret, 但 GROUP_POLICY 等仍缺失)
   try {
     const plistPath = path.join(process.env.HOME, 'Library', 'LaunchAgents', 'com.dsh.lark-bridge.plist');
-    if (fs.existsSync(plistPath) && !process.env.LARK_APP_SECRET) {
+    if (fs.existsSync(plistPath)) {
       const xml = fs.readFileSync(plistPath, 'utf8');
       const envBlock = xml.match(/<key>EnvironmentVariables<\/key>\s*<dict>([\s\S]*?)<\/dict>/);
       if (envBlock) {
