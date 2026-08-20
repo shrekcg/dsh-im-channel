@@ -48,15 +48,21 @@ test('reply: 回退剥离 HTML 标签', () => {
 test('mention: 截断不切断 <at> 标签', () => {
   const { convertMentions } = require('../src/outbound/mention');
   const rendered = convertMentions('请 @user:ou_abc123456789012345 查看，这是一个很长的测试文本').text;
-  // 模拟截断到某个可能切断标签的位置
-  const atIdx = rendered.indexOf('<at');
-  if (atIdx > 0) {
-    const truncated = rendered.slice(0, atIdx + 5); // 截在 <at 中间
+  // 模拟 index.js 的截断逻辑: 截断到 1500 内确保不切断未闭合 <at> 标签
+  const truncateSafe = (text, maxLen) => {
+    if (text.length <= maxLen) return text;
+    let truncated = text.slice(0, maxLen) + '…';
     const openAt = truncated.lastIndexOf('<at');
     const closeAt = truncated.lastIndexOf('</at>');
-    assert.ok(openAt === -1 || openAt <= closeAt || true); // 不强制, 逻辑由 index.js 处理
-  }
-  assert.ok(rendered.includes('<at user_id="ou_abc123456789012345"></at>'));
+    if (openAt > closeAt) truncated = truncated.slice(0, openAt) + '…'; // 标签未闭合则回退到标签前
+    return truncated;
+  };
+  // 短文本不截断 → 完整保留 @ 标签
+  const full = truncateSafe(rendered, 500);
+  assert.ok(full.includes('<at user_id="ou_abc123456789012345"></at>'));
+  // 强制截断在标签内部 → 应回退到标签前 (不残留未闭合 <at)
+  const truncated = truncateSafe(rendered.slice(0, rendered.indexOf('查看')), 10);
+  assert.ok(!truncated.includes('<at user_id') || truncated.includes('</at>'), '截断不应留下未闭合 @ 标签: ' + truncated);
 });
 
 // ---------- MCP server 启动 (冒烟测试) ----------

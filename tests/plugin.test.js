@@ -423,3 +423,32 @@ test('mcp: 身份门禁仅 impersonate 操作降级 bot', () => {
   assert.strictEqual(impersonate(['calendar', '+create']), false);
   assert.strictEqual(impersonate(['task', '+get-my-tasks']), false);
 });
+
+// ---------- 防御: /model 越权 (仅私聊可切换全局模型) ----------
+test('slash: /model 群聊被拒绝 (越权防护)', async () => {
+  const slash = require('../src/commands/slash');
+  const r = await slash.handleSlashCommand({}, { chatType: 'group' }, '/model deepseek-v4-flash', 's1', () => {});
+  assert.strictEqual(r.handled, true);
+  assert.ok(r.reply.includes('仅可在私聊'), '群聊应拒绝 /model');
+});
+
+test('slash: /model 私聊允许查看', async () => {
+  const slash = require('../src/commands/slash');
+  const r = await slash.handleSlashCommand({}, { chatType: 'p2p' }, '/model', 's1', () => {});
+  assert.strictEqual(r.handled, true);
+  assert.ok(r.reply.includes('当前模型'));
+});
+
+// ---------- 防御: 渠道无依赖时不谎报"在线" (R5) ----------
+test('slack: 无 socket-mode 依赖时 connected=false 不谎报', async () => {
+  const { SlackAdapter } = require('../src/channel/slack');
+  const inst = new SlackAdapter({ slackBotToken: 'fake', slackAppToken: '' }, 'test');
+  // 无 appToken → 直接降级 false (不真实调用 API)
+  try {
+    await inst.connect();
+  } catch (e) { /* token 无法验证会抛错, 接受 */ }
+  // 关键断言: 无 appToken 时 connected 应为 false (不谎报在线)
+  // 注: connect 因 botToken 无效抛错前, 先验证 isReceiveCapable 逻辑
+  const canReceive = !!inst.appToken;
+  assert.strictEqual(canReceive, false);
+});

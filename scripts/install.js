@@ -97,6 +97,15 @@ function install() {
     } else {
       console.warn('   ⚠️ 未找到 LARK_APP_SECRET (env 或 config.json), plist 将保留占位符');
     }
+    // 注入用户级路径 (可移植性: 换机器自动用当前用户的实际路径)
+    const home = os.homedir();
+    const dshHome = process.env.DSH_HOME || path.join(home, '.dsh');
+    const dshBin = process.env.DSH_BIN || path.join(home, '.local', 'bin', 'dsh');
+    const pathVal = [path.join(home, '.local', 'bin'), '/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin'].join(':');
+    plist = plist.replace('__HOME__', home);
+    plist = plist.replace('__DSH_HOME__', dshHome);
+    plist = plist.replace('__DSH_BIN__', dshBin);
+    plist = plist.replace('__PATH__', pathVal);
     fs.mkdirSync(path.dirname(PLIST_DEST), { recursive: true });
     fs.writeFileSync(PLIST_DEST, plist);
     run('launchctl', ['bootout', `gui/${process.getuid()}`, 'com.dsh.lark-bridge']);

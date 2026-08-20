@@ -33,13 +33,15 @@
 
 ### 🌐 支持渠道
 
+> ⚠️ 诚实标注：**当前稳定可用的是飞书与 Telegram**（完整收发）。钉钉/Slack/Discord 为**实验性/半可用**（见下方状态），QQ/微信/WhatsApp 未提供适配器（不在本版本范围）。
+
 | 渠道 | 状态 | 接入方式 |
 |---|---|---|
-| 飞书 📘 | ✅ 完整支持 | WebSocket 长连接（开放平台建应用） |
-| Telegram ✈️ | ✅ 支持 | BotFather 聊天内创建（最简单） |
-| 钉钉 📱 | ✅ 支持 | Stream 模式长连接 |
-| Slack 🟣 | ✅ 支持 | Socket Mode |
-| Discord 🎮 | ✅ 支持 | Gateway（bot token） |
+| 飞书 📘 | ✅ **完整支持（主力）** | WebSocket 长连接（开放平台建应用） |
+| Telegram ✈️ | ✅ 完整支持 | BotFather 聊天内创建（最简单） |
+| Slack 🟣 | 🟡 半可用（接收需 @slack/socket-mode 依赖） | Socket Mode |
+| Discord 🎮 | 🟡 半可用（接收需 discord.js 依赖） | Gateway（bot token） |
+| 钉钉 📱 | 🟡 实验（Stream 接入未完整实现） | 需 @alicloud/dingtalk-stream |
 
 > 在飞书里发 `/channels` 查看全部渠道及接入步骤，或 `/channels add <渠道>` 获取引导。
 

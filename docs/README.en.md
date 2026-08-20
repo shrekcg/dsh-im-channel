@@ -33,13 +33,15 @@ Aligned with the capabilities of the [OpenClaw Feishu plugin](https://github.com
 
 ### 🌐 Supported Channels
 
+> ⚠️ Honest status: **Feishu and Telegram are fully stable** (bidirectional). DingTalk/Slack/Discord are **experimental/partial** (see below). QQ/WeChat/WhatsApp adapters are not provided in this version.
+
 | Channel | Status | Setup |
 |---|---|---|
-| Feishu 📘 | ✅ Full | WebSocket long-connection (Open Platform) |
-| Telegram ✈️ | ✅ Supported | BotFather in-chat (easiest) |
-| DingTalk 📱 | ✅ Supported | Stream mode long-connection |
-| Slack 🟣 | ✅ Supported | Socket Mode |
-| Discord 🎮 | ✅ Supported | Gateway (bot token) |
+| Feishu 📘 | ✅ **Full (primary)** | WebSocket long-connection (Open Platform) |
+| Telegram ✈️ | ✅ Full | BotFather in-chat (easiest) |
+| Slack 🟣 | 🟡 Partial (receive needs @slack/socket-mode) | Socket Mode |
+| Discord 🎮 | 🟡 Partial (receive needs discord.js) | Gateway (bot token) |
+| DingTalk 📱 | 🟡 Experimental (Stream not fully implemented) | Needs @alicloud/dingtalk-stream |
 
 > Send `/channels` in Feishu to see all channels and setup steps, or `/channels add <channel>` for a guide.
 

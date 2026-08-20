@@ -60,9 +60,17 @@ class SlackAdapter extends ChannelAdapter {
           }
         });
         await this.socketClient.start();
+        this.canReceive = true; // 接收通道就绪
       } catch (e) {
-        this.emit('error', new Error('Slack Socket Mode 需安装 @slack/socket-mode: npm i @slack/socket-mode @slack/web-api'));
+        // 缺失依赖: 降级为仅发送, 不谎报"在线可接收"
+        this.connected = false;
+        this.canReceive = false;
+        this.emit('error', new Error('Slack 接收需安装 @slack/socket-mode @slack/web-api (当前仅发送可用): npm i @slack/socket-mode @slack/web-api'));
       }
+    } else {
+      this.connected = false;
+      this.canReceive = false;
+      this.emit('error', new Error('Slack 未配置 SLACK_APP_TOKEN (Socket Mode), 当前仅发送可用'));
     }
   }
 

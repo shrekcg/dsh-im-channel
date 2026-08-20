@@ -55,8 +55,12 @@ class DiscordAdapter extends ChannelAdapter {
         this._handleMessage(m);
       });
       await this.client.login(this.token);
+      this.canReceive = true;
     } catch (e) {
-      this.emit('error', new Error('Discord Gateway 需安装 discord.js: npm i discord.js (否则仅发送)'));
+      // 缺失依赖: 降级为仅发送, 不谎报"在线可接收"
+      this.connected = false;
+      this.canReceive = false;
+      this.emit('error', new Error('Discord 接收需安装 discord.js: npm i discord.js (当前仅发送可用)'));
     }
   }
 

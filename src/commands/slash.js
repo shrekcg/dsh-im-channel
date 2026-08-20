@@ -167,6 +167,10 @@ async function handleSlashCommand(config, msg, text, sessionId, log = () => {}) 
     }
 
     case 'model': {
+      // 越权防护: 切换模型是全局写操作 (settings.yaml), 仅允许私聊 (P2P) 执行, 群聊禁止
+      if (msg.chatType === 'group') {
+        return { handled: true, reply: '❌ /model 仅可在私聊中执行（切换的是全局默认模型）。' };
+      }
       const current = getCurrentModel(config);
       if (!args.length) {
         return { handled: true, reply: `当前模型: \`${current}\`\n\n切换: \`/model <模型名>\`` };

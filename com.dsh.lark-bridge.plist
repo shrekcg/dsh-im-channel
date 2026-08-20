@@ -5,11 +5,14 @@
 	<key>EnvironmentVariables</key>
 	<dict>
 		<key>DSH_BIN</key>
-		<string>/Users/Wcg/.local/bin/dsh</string>
+		<!-- install.js 注入: __DSH_BIN__ -->
+		<string>__DSH_BIN__</string>
 		<key>DSH_HOME</key>
-		<string>/Users/Wcg/.dsh</string>
+		<!-- install.js 注入: __DSH_HOME__ -->
+		<string>__DSH_HOME__</string>
 		<key>HOME</key>
-		<string>/Users/Wcg</string>
+		<!-- install.js 注入: __HOME__ -->
+		<string>__HOME__</string>
 		<key>LARKSUITE_CLI_NO_SKILLS_NOTIFIER</key>
 		<string>1</string>
 		<key>LARKSUITE_CLI_NO_UPDATE_NOTIFIER</key>
@@ -20,7 +23,8 @@
 		<!-- ⚠️ 模板: 安装时由 install.js 从环境变量注入, 请勿提交真实密钥 -->
 		<string>__LARK_APP_SECRET__</string>
 		<key>PATH</key>
-		<string>/Users/Wcg/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+		<!-- install.js 注入: __PATH__ -->
+		<string>__PATH__</string>
 		<key>REACTION_NOTIFICATIONS</key>
 		<string>all</string>
 		<key>REQUIRE_MENTION</key>
