@@ -124,6 +124,7 @@ function renderPage(status) {
   DSH ↔ Feishu Bridge · serverTime: ${status.serverTime} · hostname: ${f.hostname}
 </div>
 <script>
+window.__STATUS_TOKEN__ = ${JSON.stringify(status.statusToken || '')};
 async function checkConn() {
   const r = await fetch('/api/check', { method: 'POST' });
   const d = await r.json();
@@ -132,9 +133,12 @@ async function checkConn() {
 }
 async function removeConn() {
   if (!confirm('确定移除飞书接入? bridge 服务将停止。')) return;
-  const r = await fetch('/api/remove', { method: 'POST' });
+  const r = await fetch('/api/remove', {
+    method: 'POST',
+    headers: { 'X-Remove-Token': window.__STATUS_TOKEN__ || '' }
+  });
   const d = await r.json();
-  alert(d.message || '已处理');
+  alert(d.message || (d.error === 'forbidden' ? '鉴权失败 (需有效 token)' : '已处理'));
 }
 </script>
 </body>
@@ -168,12 +172,19 @@ function startStatusServer(port = 8899) {
 
     if (req.method === 'GET' && url.pathname === '/') {
       const status = getStatus();
+      // 页面也注入移除 token (供 removeConn 按钮使用)
+      if (isAllowedOrigin) status.statusToken = process.env.STATUS_TOKEN || STATUS_TOKEN_FALLBACK;
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.end(renderPage(status));
       return;
     }
     if (req.method === 'GET' && url.pathname === '/api/status') {
-      res.end(JSON.stringify(getStatus(), null, 2));
+      const status = getStatus();
+      // 仅在白名单 Origin (DSH web) 时附加移除 token, 供设置页 UI 的"移除接入"按钮使用
+      if (isAllowedOrigin) {
+        status.statusToken = process.env.STATUS_TOKEN || STATUS_TOKEN_FALLBACK;
+      }
+      res.end(JSON.stringify(status, null, 2));
       return;
     }
     if (req.method === 'POST' && url.pathname === '/api/check') {

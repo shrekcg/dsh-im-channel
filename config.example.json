@@ -1,5 +1,5 @@
 {
-  "_comment": "DSH-Lark Bridge 多账号配置示例。复制为 config.json 使用。顶层字段为 default 账号（或由环境变量提供），accounts 下为附加账号。每个账号可独立配置策略，对应不同 agent（session 自动按账号隔离）。",
+  "_comment": "DSH-IM-Channel 配置示例。复制为 config.json 使用（含密钥，勿提交，已 gitignore）。顶层字段为 default 账号（或由环境变量提供），accounts 下为附加账号。安全默认：未配置 groupPolicy/dmPolicy 时 = closed（拒绝所有人），需显式设为 open 或 allowlist 才开放。",
   "accounts": {
     "work_bot": {
       "appId": "cli_你的第二个应用ID",
@@ -13,12 +13,17 @@
       "appId": "cli_第三个应用ID",
       "appSecret": "第三个应用密钥",
       "name": "个人机器人",
-      "requireMention": false
+      "requireMention": false,
+      "groupPolicy": "open"
     }
   },
   "requireMention": false,
   "groupPolicy": "open",
+  "dmPolicy": "open",
   "reactionNotifications": "all",
+  "statusPort": 8899,
+  "streamThrottleMs": 60,
+  "streamThrottleChars": 3,
   "typingChunkMs": 250,
   "typingChunkSize": 8
 }

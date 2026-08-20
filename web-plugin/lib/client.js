@@ -147,7 +147,7 @@ window.__ModuleLoader__.load({
 									react_jsx_runtime.jsx("div", { className: "lb-health", children: a.health }),
 									react_jsx_runtime.jsx("div", { className: "lb-actions", children: [
 										react_jsx_runtime.jsx("button", { className: "lb-btn", onClick: () => { fetch("http://127.0.0.1:8899/api/check", { method: "POST" }).then(() => load()); }, children: "检查连接" }),
-										react_jsx_runtime.jsx("button", { className: "lb-btn danger", onClick: () => { if (confirm("确定移除飞书接入? bridge 将停止。")) fetch("http://127.0.0.1:8899/api/remove", { method: "POST" }); }, children: "移除接入" })
+										react_jsx_runtime.jsx("button", { className: "lb-btn danger", onClick: () => { if (confirm("确定移除飞书接入? bridge 将停止。")) fetch("http://127.0.0.1:8899/api/remove", { method: "POST", headers: { "X-Remove-Token": status.statusToken || "" } }); }, children: "移除接入" })
 									] })
 								] }, a.id))
 						] })
