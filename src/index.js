@@ -417,6 +417,8 @@ async function processMessage(config, msg, accountId) {
 }
 
 async function main() {
+  // 显式 chdir 到项目目录 (修复 launchd WorkingDirectory 含空格导致的 getcwd 错误)
+  try { process.chdir(BRIDGE_DIR); } catch (e) { log('[start] chdir 失败:', e.message); }
   const config = loadConfig(BRIDGE_DIR);
   const accountIds = Object.keys(config.accounts);
   log('=== DSH-Lark Bridge (模块化版) 启动 ===');
@@ -476,11 +478,15 @@ async function main() {
           log(`[ask-user] 用户选择: ${option} (问题: ${question || '-'})`);
           // 反查会话类型 (卡片可能在群里被点击, 不硬编码 p2p)
           const chatType = await resolveChatType(accConfig, evt.chatId);
+          // 反查原消息的线程上下文 (cardAction 回落实例化在话题内时, 保持 thread 隔离)
+          const origCtx = recentMessageContext.get(evt.messageId) || {};
           const prompt = `【用户对提问的回复】问题: ${question || ''}\n用户选择: ${option}`;
           const { reply } = await session.runSession(accConfig, {
             senderId: evt.operator?.openId || 'anonymous',
             chatId: evt.chatId,
             chatType,
+            threadId: origCtx.threadId,
+            rootId: origCtx.rootId,
             content: '',
           }, prompt, log, accountId);
           if (reply && reply !== '（无回复）' && reply !== '（处理出错）') {
@@ -565,7 +571,17 @@ async function main() {
     if (!enabled) continue; // 未配置, 跳过
     try {
       const { getAdapter } = require('./channel');
-      const inst = getAdapter(type, { ...config, [type.toLowerCase() + 'BotToken']: process.env[envKey] }, `default-${type}`);
+      // 各渠道配置键映射 (dingtalk 读 appKey/appSecret, 其余读 xxxBotToken)
+      const extraCfg = { ...config };
+      if (type === 'dingtalk') {
+        const key = process.env.DINGTALK_APP_KEY || '';
+        const secret = process.env.DINGTALK_APP_SECRET || '';
+        extraCfg.dingtalkAppKey = key;
+        extraCfg.dingtalkAppSecret = secret;
+      } else {
+        extraCfg[`${type}BotToken`] = process.env[envKey];
+      }
+      const inst = getAdapter(type, extraCfg, `default-${type}`);
       inst.on('message', async (msg) => {
         try {
           await processMessage({ ...config, channelType: type }, msg, type);

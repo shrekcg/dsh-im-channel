@@ -51,11 +51,18 @@ function install() {
   console.log('[2/4] 配置 DSH 插件注入...');
   const patchPath = path.join(LARK_SESSION_DEST, 'cordis.patch.yml');
   let patch = fs.readFileSync(patchPath, 'utf8');
-  // 确保 MCP server 路径指向当前 bridge 目录
+  // 注入实际路径占位符 (兼容可移植模板: __NODE_BIN__ / __BRIDGE_DIR__ / __LARK_CLI__)
+  const nodeBin = process.env.LARK_NODE_BIN || '/opt/homebrew/bin/node';
+  const larkCli = process.env.LARK_CLI || '/opt/homebrew/bin/lark-cli';
+  patch = patch.replace(/__NODE_BIN__/g, nodeBin);
+  patch = patch.replace(/__LARK_CLI__/g, larkCli);
+  // 兼容旧格式: 直接替换 args 里的硬编码路径
   patch = patch.replace(
     /args: \['[^']*dsh-lark-bridge[^']*src\/tools\/mcp-server\.js'\]/,
     `args: ['${path.join(BRIDGE_DIR, 'src', 'tools', 'mcp-server.js').replace(/'/g, "\\'")}']`
   );
+  // 占位符 BRIDGE_DIR 若未被上面正则覆盖 (新格式), 直接替换
+  patch = patch.replace(/__BRIDGE_DIR__/g, BRIDGE_DIR);
   fs.writeFileSync(patchPath, patch);
   console.log('   ✅ patch 已配置 MCP server 路径');
 

@@ -44,13 +44,14 @@ class DingTalkAdapter extends ChannelAdapter {
 
   async connect() {
     if (!this.appKey || !this.appSecret) throw new Error('DINGTALK_APP_KEY/SECRET 未配置');
-    await this._getToken();
-    this.connected = true;
-    this.lastChecked = new Date().toISOString();
-    // 钉钉 Stream 模式: 建立 WebSocket 长连接接收消息
-    // 简化: 使用轮询/API 拉取 (完整 Stream 需 @alicloud/dingtalk-stream 依赖)
-    this.polling = true;
-    this._poll().catch((e) => this.emit('error', e));
+    // ⚠️ 诚实标注: 钉钉 Stream 模式未完整实现。
+    // 不设 connected=true (避免状态页误导为"在线"), 明确抛出未实现错误。
+    // 完整接入需 @alicloud/dingtalk-stream:
+    //   const { StreamClient } = require('@alicloud/dingtalk-stream');
+    //   const client = new StreamClient({ credential: { clientId: appKey, clientSecret: appSecret } });
+    //   client.registerCallback('/v1.0/im/bot/messages/get', (msg) => this._handleMessage(msg));
+    //   await client.start();
+    throw new Error('钉钉渠道未实现完整接入: 需安装 @alicloud/dingtalk-stream (见 src/channel/dingtalk.js 注释)');
   }
 
   async _poll() {

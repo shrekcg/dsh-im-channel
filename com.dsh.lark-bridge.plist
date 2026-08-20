@@ -43,7 +43,6 @@
 	<string>/Users/Wcg/Desktop/AI /deepseek-harness/dsh-lark-bridge/bridge.err.log</string>
 	<key>StandardOutPath</key>
 	<string>/Users/Wcg/Desktop/AI /deepseek-harness/dsh-lark-bridge/bridge.log</string>
-	<key>WorkingDirectory</key>
-	<string>/Users/Wcg/Desktop/AI /deepseek-harness/dsh-lark-bridge</string>
+	<!-- WorkingDirectory 已移除: 含空格会触发 getcwd 报错, index.js 启动时显式 chdir -->
 </dict>
 </plist>

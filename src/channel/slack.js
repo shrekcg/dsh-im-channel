@@ -42,6 +42,7 @@ class SlackAdapter extends ChannelAdapter {
     // 验证 token
     const auth = await this._web('auth.test');
     this.botName = auth.user || 'slack-bot';
+    this.botUserId = auth.user_id || ''; // Slack mention 用用户 ID (<@U12345>), 不是 username
     this.connected = true;
     this.lastChecked = new Date().toISOString();
 
@@ -75,7 +76,7 @@ class SlackAdapter extends ChannelAdapter {
       senderId: m.user || '',
       senderName: m.user || '',
       text,
-      mentionedBot: isGroup ? text.includes(`<@${this.botName}>`) || text.startsWith('/') : true,
+      mentionedBot: isGroup ? text.includes(`<@${this.botUserId || this.botName}>`) || text.startsWith('/') : true,
       mentionAll: text.includes('<!channel>') || text.includes('<!everyone>'),
       threadId: m.thread_ts || undefined,
       rawContentType: m.files?.length ? 'file' : 'text',

@@ -15,7 +15,11 @@
  */
 
 const http = require('http');
+const crypto = require('crypto');
 const { getStatus } = require('./core/status');
+
+// /api/remove 的兜底 token (进程启动时随机生成; 可用 env STATUS_TOKEN 覆盖)
+const STATUS_TOKEN_FALLBACK = crypto.randomBytes(24).toString('hex');
 
 function renderPage(status) {
   const f = status.feishu;
@@ -145,10 +149,15 @@ function startStatusServer(port = 8899) {
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
-    // CORS: 允许 DSH web (3080) 跨端口读取状态
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // CORS: 仅允许 DSH web GUI 同源跨端口读取 (收紧, 防恶意网页跨域调用)
+    const origin = req.headers.origin || '';
+    const allowedOrigins = ['http://127.0.0.1:3080', 'http://localhost:3080'];
+    const isAllowedOrigin = allowedOrigins.includes(origin) || !origin;
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', isAllowedOrigin ? origin : 'null');
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Remove-Token');
 
     // OPTIONS 预检
     if (req.method === 'OPTIONS') {
@@ -173,6 +182,14 @@ function startStatusServer(port = 8899) {
       return;
     }
     if (req.method === 'POST' && url.pathname === '/api/remove') {
+      // 鉴权: 需提供移除 token (env STATUS_TOKEN 或随机生成), 防任意网页杀死 bridge (DoS)
+      const expectedToken = process.env.STATUS_TOKEN || STATUS_TOKEN_FALLBACK;
+      const provided = req.headers['x-remove-token'] || '';
+      if (!expectedToken || provided !== expectedToken || !isAllowedOrigin) {
+        res.statusCode = 403;
+        res.end(JSON.stringify({ ok: false, error: 'forbidden' }));
+        return;
+      }
       // 移除接入: 停止 bridge (交给 launchd 的 KeepAlive 决策是否重启)
       res.end(JSON.stringify({ ok: true, message: '已请求移除接入, 服务停止中...' }));
       setTimeout(() => process.exit(0), 300);

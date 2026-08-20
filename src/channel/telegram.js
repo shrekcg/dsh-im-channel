@@ -99,13 +99,23 @@ class TelegramAdapter extends ChannelAdapter {
   }
 
   async sendText(chatId, text, opts = {}) {
-    const r = await this.apiCall('sendMessage', {
-      chat_id: chatId,
-      text,
-      reply_to_message_id: opts.replyTo ? Number(opts.replyTo) : undefined,
-      parse_mode: 'Markdown',
-    });
-    return { messageId: String(r.message_id) };
+    try {
+      const r = await this.apiCall('sendMessage', {
+        chat_id: chatId,
+        text,
+        reply_to_message_id: opts.replyTo ? Number(opts.replyTo) : undefined,
+        parse_mode: 'Markdown',
+      });
+      return { messageId: String(r.message_id) };
+    } catch (e) {
+      // Markdown 解析失败 (未配对 * _ [ ] 等) 时降级纯文本重试
+      const r = await this.apiCall('sendMessage', {
+        chat_id: chatId,
+        text,
+        reply_to_message_id: opts.replyTo ? Number(opts.replyTo) : undefined,
+      });
+      return { messageId: String(r.message_id) };
+    }
   }
 
   /** 真流式: 用编辑消息模拟打字机 */
