@@ -16,6 +16,8 @@
  */
 
 const { ChannelAdapter } = require('./base');
+const fs = require('fs');
+const path = require('path');
 
 const API = 'https://api.telegram.org/bot';
 
@@ -146,6 +148,33 @@ class TelegramAdapter extends ChannelAdapter {
       return { messageId: String(r.message_id) };
     }
     throw new Error('Telegram sendMedia: 仅支持 URL 媒体');
+  }
+
+  /** 下载媒体到本地 (供 agent 查看图片/文件) */
+  async downloadMedia(msg, config) {
+    const resources = msg.resources || [];
+    if (!resources.length) return [];
+    const dir = config.mediaDir;
+    fs.mkdirSync(dir, { recursive: true });
+    const results = [];
+    for (const res of resources) {
+      try {
+        // getFile → file_path → 下载
+        const f = await this.apiCall('getFile', { file_id: res.fileKey });
+        const filePath = f.file_path;
+        if (!filePath) continue;
+        const ext = path.extname(filePath) || '.file';
+        const localPath = path.join(dir, `${Date.now()}-${res.type}${ext}`);
+        const dl = await fetch(`https://api.telegram.org/file/bot${this.token}/${filePath}`);
+        if (!dl.ok) throw new Error('下载失败 ' + dl.status);
+        const buf = Buffer.from(await dl.arrayBuffer());
+        fs.writeFileSync(localPath, buf);
+        results.push({ ...res, localPath, sizeBytes: buf.length });
+      } catch (e) {
+        console.error(`[telegram] 媒体下载失败 ${res.type}:`, e.message);
+      }
+    }
+    return results;
   }
 
   async addReaction(messageId, emoji) {
