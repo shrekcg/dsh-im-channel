@@ -11,7 +11,6 @@
     "./client": {
       "default": "./lib/client.js"
     },
-    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "dsh": {
@@ -28,12 +27,7 @@
     }
   },
   "scripts": {
-    "build": "echo \"client.js 为手写 ModuleLoader 格式, 无需构建; 改 src/ 需 tsdown\"",
-    "typecheck": "tsc --noEmit"
+    "build": "echo \"client.js 为手写 ModuleLoader 格式, 无需构建; 改 src/ 需 tsdown\""
   },
-  "devDependencies": {
-    "@deepseek-ai/cordis": "*",
-    "@deepseek-ai/dsh-client-runtime": "*",
-    "@deepseek-ai/dsh-client-ui-settings": "*"
-  }
+  "devDependencies": {}
 }

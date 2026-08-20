@@ -91,11 +91,17 @@ function install() {
       }
       return m;
     });
-    // 注入 appSecret (模板占位符 → 实际值)
+    // 注入 appSecret / appId (模板占位符 → 实际值)
     if (appSecret) {
       plist = plist.replace('__LARK_APP_SECRET__', appSecret);
     } else {
       console.warn('   ⚠️ 未找到 LARK_APP_SECRET (env 或 config.json), plist 将保留占位符');
+    }
+    const appId = process.env.LARK_APP_ID || '';
+    if (appId) {
+      plist = plist.replace('__LARK_APP_ID__', appId);
+    } else {
+      console.warn('   ⚠️ 未找到 LARK_APP_ID (env 或 config.json), plist 将保留占位符');
     }
     // 注入用户级路径 (可移植性: 换机器自动用当前用户的实际路径)
     const home = os.homedir();

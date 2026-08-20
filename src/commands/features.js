@@ -20,6 +20,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { spawnSync } = require('child_process');
+const { findLarkCli } = require('../core/lark-cli');
 
 const BRIDGE_DIR = path.resolve(__dirname, '..', '..');
 const DSH_HOME = process.env.DSH_HOME || path.join(os.homedir(), '.dsh');
@@ -58,7 +59,7 @@ function getAppId() {
 
 /** 查询应用已授权 scope 集合 */
 function getGrantedScopes() {
-  const r = run('/opt/homebrew/bin/lark-cli', ['api', 'GET', '/open-apis/application/v6/scopes', '--as', 'bot']);
+  const r = run(findLarkCli(), ['api', 'GET', '/open-apis/application/v6/scopes', '--as', 'bot']);
   try {
     const d = JSON.parse(r.out);
     if (d.ok === false) return new Set();

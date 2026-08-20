@@ -42,6 +42,7 @@ const mergeForward = require('./inbound/merge-forward');
 const commentHandler = require('./inbound/comment');
 const mention = require('./outbound/mention');
 const pacing = require('./core/pacing');
+const { findLarkCli } = require('./core/lark-cli');
 const status = require('./core/status');
 const { startStatusServer } = require('./http-status');
 const slash = require('./commands/slash');
@@ -142,7 +143,7 @@ async function resolveChatType(config, chatId) {
   const cached = chatTypeCache.get(chatId);
   if (cached && Date.now() - cached.ts < CHAT_TYPE_TTL) return cached.chatType;
   try {
-    const res = await session.run(process.env.LARK_CLI || '/opt/homebrew/bin/lark-cli', ['im', '+chat-list', '--types', 'p2p,group', '--page-size', '50', '--as', 'bot'],
+    const res = await session.run(findLarkCli(), ['im', '+chat-list', '--types', 'p2p,group', '--page-size', '50', '--as', 'bot'],
       { env: { ...process.env, LARKSUITE_CLI_NO_UPDATE_NOTIFIER: '1', LARKSUITE_CLI_NO_SKILLS_NOTIFIER: '1' } }, log);
     const d = JSON.parse(res.out || '{}');
     const chats = d.data?.chats || d.data?.items || [];
@@ -516,7 +517,7 @@ async function main() {
           log(`[comment] 回复: ${reply.slice(0, 80)}`);
           // 通过文档评论 API 回复 (drive file.comment.replys create)
           const replyRes = await session.run(
-            '/opt/homebrew/bin/lark-cli',
+            findLarkCli(),
             ['drive', 'file.comment.replys', 'create',
               '--file-token', evt.fileToken,
               '--file-type', evt.fileType || 'docx',

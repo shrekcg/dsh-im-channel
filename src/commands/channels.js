@@ -59,7 +59,7 @@ const CHANNELS = {
       '复制 AppKey / AppSecret 填入配置',
     ],
     env: ['DINGTALK_APP_KEY', 'DINGTALK_APP_SECRET'],
-    note: 'Stream 模式与飞书架构最接近',
+    note: '⚠️ 当前版本钉钉 Stream 接入未完整实现 (需 @alicloud/dingtalk-stream), 接入步骤仅供预览',
   },
   slack: {
     name: 'Slack',

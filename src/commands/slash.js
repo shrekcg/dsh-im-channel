@@ -19,7 +19,20 @@
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { spawnSync } = require('child_process');
+const { spawn } = require('child_process');
+
+/** 异步运行子进程 (不阻塞事件循环), 返回 {code, out} */
+function runAsync(bin, args, opts = {}) {
+  return new Promise((resolve) => {
+    const child = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'], ...opts });
+    let out = '';
+    child.stdout.on('data', (d) => (out += d.toString()));
+    child.stderr.on('data', () => {});
+    const timer = setTimeout(() => { try { child.kill('SIGKILL'); } catch (e) {} }, opts.timeout || 30000);
+    child.on('close', (code) => { clearTimeout(timer); resolve({ code, out }); });
+    child.on('error', () => { clearTimeout(timer); resolve({ code: -1, out }); });
+  });
+}
 
 const COMMANDS = {
   help: { desc: '显示帮助', usage: '/help' },
@@ -218,20 +231,20 @@ async function handleSlashCommand(config, msg, text, sessionId, log = () => {}) 
     }
 
     case 'features': {
-      const r = spawnSync(process.execPath, [path.join(__dirname, 'features.js')], {
-        encoding: 'utf8', timeout: 20000,
+      const r = await runAsync(process.execPath, [path.join(__dirname, 'features.js')], {
+        timeout: 20000,
         env: { ...process.env, LARKSUITE_CLI_NO_UPDATE_NOTIFIER: '1' },
       });
-      const out = (r.stdout || '').trim();
+      const out = (r.out || '').trim();
       return { handled: true, reply: '**功能配置清单**\n\n```\n' + out + '\n```' };
     }
 
     case 'doctor': {
-      const r = spawnSync(process.execPath, [path.join(__dirname, 'doctor.js')], {
-        encoding: 'utf8', timeout: 30000,
+      const r = await runAsync(process.execPath, [path.join(__dirname, 'doctor.js')], {
+        timeout: 30000,
         env: { ...process.env, LARKSUITE_CLI_NO_UPDATE_NOTIFIER: '1' },
       });
-      const out = (r.stdout || '').trim();
+      const out = (r.out || '').trim();
       const tail = out.split('\n').slice(-15).join('\n');
       return { handled: true, reply: '**诊断结果**\n\n```\n' + tail + '\n```' };
     }

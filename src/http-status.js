@@ -21,13 +21,20 @@ const { getStatus } = require('./core/status');
 // /api/remove 的兜底 token (进程启动时随机生成; 可用 env STATUS_TOKEN 覆盖)
 const STATUS_TOKEN_FALLBACK = crypto.randomBytes(24).toString('hex');
 
+/** HTML 转义 (防动态字段注入 XSS) */
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function renderPage(status) {
   const f = status.feishu;
   const channels = status.channels.map((c) => `
     <div class="channel ${c.current ? 'current' : ''} ${c.connected ? 'online' : 'offline'}">
       <span class="ch-icon">${c.icon}</span>
       <div class="ch-info">
-        <div class="ch-name">${c.name}</div>
+        <div class="ch-name">${esc(c.name)}</div>
         <div class="ch-state">${c.connected ? '🟢 在线' : '⚪ 未配置'}</div>
       </div>
     </div>`).join('');
@@ -35,10 +42,10 @@ function renderPage(status) {
   const accounts = f.accounts.length ? f.accounts.map((a) => `
     <div class="account-card">
       <div class="acc-header">
-        <span class="acc-name">${a.name}</span>
+        <span class="acc-name">${esc(a.name)}</span>
         <span class="acc-status online">🟢 ${a.status}</span>
       </div>
-      <div class="acc-id">账号 ID: ${a.id}</div>
+      <div class="acc-id">账号 ID: ${esc(a.id)}</div>
       <table class="acc-detail">
         <tr><td>消息通道</td><td>${a.messageChannel}</td></tr>
         <tr><td>最近检查</td><td>${a.lastChecked || '—'}</td></tr>
@@ -113,7 +120,7 @@ function renderPage(status) {
     <div class="sub">通过 WebSocket 长连接把 DeepSeek Harness 接入飞书</div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
       <span class="online-badge">${f.online} / 1 在线</span>
-      <span style="font-size:13px;color:#86909c">App ID: ${f.appId}</span>
+      <span style="font-size:13px;color:#86909c">App ID: ${esc(f.appId)}</span>
     </div>
     <h3 style="font-size:14px;margin:16px 0 4px">已接入的飞书账号</h3>
     <div style="font-size:12px;color:#86909c">${f.accounts.length} 个</div>

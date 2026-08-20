@@ -18,7 +18,8 @@
 		<key>LARKSUITE_CLI_NO_UPDATE_NOTIFIER</key>
 		<string>1</string>
 		<key>LARK_APP_ID</key>
-		<string>cli_aaf452591cb8dcff</string>
+		<!-- install.js 注入: __LARK_APP_ID__ (不提交真实 AppID, 模板可复用) -->
+		<string>__LARK_APP_ID__</string>
 		<key>LARK_APP_SECRET</key>
 		<!-- ⚠️ 模板: 安装时由 install.js 从环境变量注入, 请勿提交真实密钥 -->
 		<string>__LARK_APP_SECRET__</string>

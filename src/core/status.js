@@ -90,20 +90,36 @@ const CHANNEL_ICONS = {
 const feishuState = {
   connected: false,
   online: 0,
-  accounts: [],
+  accounts: [],       // 多账号累计 (按 appId 去重)
   botName: '',
   botOpenId: '',
   appId: '',
   lastMessageAt: null,
 };
+// 多账号注册表: appId -> bot 信息 (防单例被后连账号覆盖)
+const feishuAccounts = new Map();
 
-/** 更新飞书渠道状态 (兼容旧调用) */
+/** 更新飞书渠道状态 (兼容旧调用, 多账号时按 appId 累计) */
 function updateFeishu(partial) {
+  const prevAppId = feishuState.appId;
   Object.assign(feishuState, partial);
   feishuState.lastChecked = new Date().toISOString();
   feishuState.health = feishuState.connected ? '飞书 WebSocket 长连接运行正常' : '未连接 (检查 launchd 服务)';
-  feishuState.online = feishuState.connected ? 1 : 0;
-  if (feishuState.botName) {
+  feishuState.online = feishuState.connected ? Math.max(1, feishuAccounts.size) : 0;
+  // 多账号: 按 appId 注册/更新, 不去重时旧账号覆盖
+  if (partial.botName && (partial.appId || prevAppId)) {
+    const key = partial.appId || prevAppId;
+    feishuAccounts.set(key, {
+      id: partial.botOpenId || partial.appId || key,
+      name: partial.botName,
+      status: partial.connected ? '运行正常' : '离线',
+      messageChannel: 'WebSocket 长连接',
+      lastChecked: feishuState.lastChecked,
+      health: feishuState.health,
+    });
+    feishuState.accounts = [...feishuAccounts.values()];
+  }
+  if (feishuState.botName && feishuAccounts.size === 0) {
     feishuState.accounts = [{
       id: feishuState.botOpenId || feishuState.appId,
       name: feishuState.botName,
