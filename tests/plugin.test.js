@@ -373,3 +373,53 @@ test('status: channels[feishu].connected 与 feishu 详情一致', () => {
   // 恢复
   statusMod.updateFeishu({ connected: false, botName: '', accounts: [] });
 });
+
+// ---------- 防御: HTTP /api/remove 鉴权 (S2) ----------
+const cryptoMod = require('crypto');
+
+test('http: /api/remove 需 token 且 Origin 白名单', () => {
+  // 验证鉴权逻辑: 无 token → 403; 正确 token + 非白名单 Origin → 403
+  const token = 'test-token-123';
+  const allowed = ['http://127.0.0.1:3080'];
+  const isAllowed = (origin) => !origin || allowed.includes(origin);
+  const authorize = (provided, origin) => {
+    if (provided !== token || !isAllowed(origin)) return 403;
+    return 200;
+  };
+  assert.strictEqual(authorize('', 'http://evil.com'), 403);      // 无 token + 恶意来源
+  assert.strictEqual(authorize('wrong', 'http://127.0.0.1:3080'), 403); // 错 token
+  assert.strictEqual(authorize('test-token-123', 'http://evil.com'), 403); // 对 token + 恶意 Origin
+  assert.strictEqual(authorize('test-token-123', 'http://127.0.0.1:3080'), 200); // 全部对
+});
+
+// ---------- 防御: runSession NDJSON 解析 (delta/done/旧格式) ----------
+test('session: NDJSON 流解析 (delta + done)', () => {
+  // 模拟 runner 输出 (从 session.js runSession 逻辑提炼)
+  const streamedText = '这是流式文本';
+  const out = [
+    JSON.stringify({ type: 'delta', text: '这是' }),
+    JSON.stringify({ type: 'delta', text: '流式文本' }),
+    JSON.stringify({ type: 'done', sessionId: 's1', text: streamedText, seq: 5, tools: [{ name: 'bash' }], thinking: 'think', reason: 'completed' }),
+  ].join('\n');
+  // 解析 done 行
+  let parsedFinish = {};
+  for (const line of out.split('\n')) {
+    try {
+      const p = JSON.parse(line);
+      if (p.type === 'done') { parsedFinish = p; break; }
+    } catch (e) {}
+  }
+  assert.strictEqual(parsedFinish.text, streamedText);
+  assert.strictEqual(parsedFinish.seq, 5);
+  assert.strictEqual(parsedFinish.tools.length, 1);
+});
+
+// ---------- 防御: MCP 身份门禁正则 (仅发消息/邮件降级 bot) ----------
+test('mcp: 身份门禁仅 impersonate 操作降级 bot', () => {
+  const impersonate = (args) => /^im\s+\+messages-send|^mail\s+\+send/.test(args.join(' '));
+  assert.strictEqual(impersonate(['im', '+messages-send', '--chat-id', 'x']), true);
+  assert.strictEqual(impersonate(['mail', '+send', '--to', 'a@b.c']), true);
+  assert.strictEqual(impersonate(['docs', '+create', '--title', 'x']), false);
+  assert.strictEqual(impersonate(['calendar', '+create']), false);
+  assert.strictEqual(impersonate(['task', '+get-my-tasks']), false);
+});

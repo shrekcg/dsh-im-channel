@@ -13,23 +13,6 @@ const os = require('os');
 const startedAt = Date.now();
 
 /**
- * 更新单个渠道状态 (由 index.js 在连接/消息时调用, 委托给适配器)
- * @param {string} type 渠道类型
- * @param {object} partial 状态片段
- */
-function updateChannel(type, partial) {
-  try {
-    const { getAdapter } = require('../channel');
-    const inst = getAdapter(type, { appId: '', appSecret: '' });
-    if (inst && partial) {
-      inst.connected = partial.connected ?? inst.connected;
-      inst.botName = partial.botName ?? inst.botName;
-      inst.lastChecked = new Date().toISOString();
-    }
-  } catch (e) {}
-}
-
-/**
  * 获取完整状态 (JSON)
  * 返回 { channels: [...], serverTime } 结构, 每个渠道一个状态对象
  */
@@ -137,4 +120,4 @@ function noteMessage() {
   feishuState.lastMessageAt = new Date().toISOString();
 }
 
-module.exports = { getStatus, updateChannel, updateFeishu, noteMessage, feishuState, startedAt };
+module.exports = { getStatus, updateFeishu, noteMessage, feishuState, startedAt };

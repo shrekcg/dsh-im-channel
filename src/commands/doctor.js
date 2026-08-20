@@ -60,12 +60,6 @@ function main() {
   // ---------- 1. 配置 ----------
   console.log('[1] 配置检查');
   // 从 launchd plist 补充环境变量 (doctor 直接运行时可能没有)
-  try {
-    const plistPath = path.join(process.env.HOME, 'Library', 'LaunchAgents', 'com.dsh.lark-bridge.plist');
-    if (fs.existsSync(plistPath)) {
-      const plist = require('plist').parse ? null : null; // 不引入额外依赖
-    }
-  } catch (e) {}
   // 简单解析 plist 中的环境变量 (XML 文本提取)
   try {
     const plistPath = path.join(process.env.HOME, 'Library', 'LaunchAgents', 'com.dsh.lark-bridge.plist');

@@ -34,7 +34,8 @@
   },
   "dependencies": {
     "@larksuite/channel": "^0.5.0",
-    "@modelcontextprotocol/sdk": "^1.30.0"
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.0.0"
   },
   "bin": {
     "dsh-im-channel": "src/index.js",

@@ -41,7 +41,6 @@ const reaction = require('./inbound/reaction');
 const mergeForward = require('./inbound/merge-forward');
 const commentHandler = require('./inbound/comment');
 const mention = require('./outbound/mention');
-const { adaptiveStep } = require('./core/adaptive');
 const pacing = require('./core/pacing');
 const status = require('./core/status');
 const { startStatusServer } = require('./http-status');
